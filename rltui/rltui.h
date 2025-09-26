@@ -8,6 +8,7 @@
 #include "rltui/tui-raw.h"
 #include "rltui/tui-rect.h"
 #include "rltui/tui-write.h"
+#include "rltui/tui.h"
 
 #define RLTUI_H
 #endif
