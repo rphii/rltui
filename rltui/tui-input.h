@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "tui-point.h"
 #include <rlso.h>
+#include <pthread.h>
 
 #define TUI_INPUT_MAX   128
 
@@ -35,6 +36,17 @@ typedef enum {
 
 #define TUI_INPUT_RAW_MAX   128
 
+typedef struct Tui_Input_Special_Cursor_Position {
+    pthread_cond_t cond;
+    pthread_mutex_t mtx;
+    bool ready;
+    Tui_Point point;
+} Tui_Input_Special_Cursor_Position;
+
+typedef struct Tui_Input_Special {
+    Tui_Input_Special_Cursor_Position cursor_position;
+} Tui_Input_Special;
+
 typedef struct Tui_Input_Raw {
     unsigned char c[TUI_INPUT_RAW_MAX];
     unsigned char bytes;
@@ -52,6 +64,7 @@ typedef struct Tui_Mouse {
 } Tui_Mouse;
 
 typedef struct Tui_Input {
+    Tui_Input_Special special;
     Tui_Input_List id;
     Tui_Key_List key;
     Tui_Mouse mouse;
@@ -64,6 +77,7 @@ typedef struct Tui_Input {
 } Tui_Input;
 
 bool tui_input_process(Tui_Input *ti);
+void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui_Point *point);
 
 #define TUI_INPUT_H
 #endif

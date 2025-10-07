@@ -1,4 +1,5 @@
 #include "tui-input.h"
+#include "tui-write.h"
 #include "tui-die.h"
 #include <errno.h>
 #include <ctype.h>
@@ -21,7 +22,10 @@ int tui_input_get_byte(unsigned char *c) {
 }
 
 int tui_input_get(Tui_Input_Raw *input) {
-    //if(!kbhit()) return 0;
+    //if(!kbhit()) {
+    //    usleep(1e2);
+    //    return 0;
+    //}
     unsigned char c;
     input->bytes = 0;
     int have_c = false;
@@ -64,7 +68,7 @@ int tui_input_get(Tui_Input_Raw *input) {
 
 bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     Tui_Mouse mouse_prev = decode->mouse;
-    *decode = (Tui_Input){ ._raw = *input, };
+    decode->id = INPUT_NONE;
     if(input->bytes == 0) return false;
     if(!iscntrl(input->c[0])) {
         decode->id = INPUT_TEXT;
@@ -79,6 +83,16 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             case 0x7f: decode->key = KEY_BACKSPACE; break;
             default: decode->id = INPUT_NONE; break;
         }
+    } else if(input->bytes > 3 && input->c[input->bytes - 1] == 'R') {
+        So in = so_ll(input->c + 2, input->bytes - 3);
+        So right, left = so_split_ch(in, ';', &right);
+        Tui_Input_Special_Cursor_Position *pos = &decode->special.cursor_position;
+        so_as_ssize(left, &pos->point.y, 10);
+        so_as_ssize(right, &pos->point.x, 10);
+        pthread_mutex_lock(&pos->mtx);
+        pos->ready = true;
+        pthread_cond_signal(&pos->cond);
+        pthread_mutex_unlock(&pos->mtx);
     } else if(input->bytes > 2 && input->c[0] == '\x1b' && input->c[1] == '[') {
         So in = so_ll(input->c + 2, input->bytes - 2);
         size_t len = so_len(in);
@@ -142,9 +156,19 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
 
 
 bool tui_input_process(Tui_Input *ti) {
-    Tui_Input_Raw _raw = {0};
     if(!tui_input_get(&ti->_raw)) return false;
     bool result = tui_input_decode(&ti->_raw, ti);
     return result;
+}
+
+void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui_Point *point) {
+    pthread_mutex_lock(&pos->mtx);
+    pos->ready = false;
+    tui_write_cstr("\e[6n");
+    while(!pos->ready) {
+        pthread_cond_wait(&pos->cond, &pos->mtx);
+    }
+    pthread_mutex_unlock(&pos->mtx);
+    *point = pos->point;
 }
 

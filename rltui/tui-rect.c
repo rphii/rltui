@@ -1,0 +1,14 @@
+#include "tui-rect.h"
+
+bool tui_rect_contains_point(Tui_Rect rect, Tui_Point pt) {
+    if(!rect.dim.y || !rect.dim.x) {
+        return false;
+    }
+    if(pt.y >= rect.anc.y && pt.y <= rect.anc.y + rect.dim.y) {
+        if(pt.x >= rect.anc.x && pt.x <= rect.anc.x + rect.dim.x) {
+            return true;
+        }
+    }
+    return false;
+}
+
