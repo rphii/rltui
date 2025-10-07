@@ -28,11 +28,11 @@ void tui_raw_enable(void) {
 void tui_raw_disable(void) {
     struct termios *orig = tui_global_get_termios();
     if(!orig) return;
-    tui_write_cstr(TUI_ESC_CODE_CURSOR_SHOW);
-    tui_write_cstr(TUI_ESC_CODE_MOUSE_OFF);
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, orig) == -1) {
         tui_die("tcsetattr");
     }
+    tui_write_cstr(TUI_ESC_CODE_CURSOR_SHOW);
+    tui_write_cstr(TUI_ESC_CODE_MOUSE_OFF);
 }
 
 

@@ -11,8 +11,8 @@
 #define TUI_ESC_CODE_CURSOR_DEFAULT "\e[0 q"
 #define TUI_ESC_CODE_CURSOR_BAR     "\e[6 q"
 #define TUI_ESC_CODE_CURSOR_BLOCK   "\e[2 q"
-#define TUI_ESC_CODE_MOUSE_ON       "\e[?1003h\e[?1015h\e[?1006h"
-#define TUI_ESC_CODE_MOUSE_OFF      "\e[?1000l"
+#define TUI_ESC_CODE_MOUSE_ON       "\e[?1003h\e[?1006h"// "\e[?1003h\e[?1006h\e[?1015h"
+#define TUI_ESC_CODE_MOUSE_OFF      "\e[?1000l"// "\e[?1000l\e[?1006l\e[?1015l"
 
 #define TUI_ESC_CODE_LEN(x)     sizeof(x)-1
 
