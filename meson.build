@@ -1,21 +1,31 @@
 project('rltui', 'c', meson_version: '>=1.1', version: '9999')
 
 sources = [
+  'rltui/tui-buffer.c',
+  'rltui/tui-cell.c',
   'rltui/tui-die.c',
   'rltui/tui-global.c',
   'rltui/tui-input.c',
   'rltui/tui-raw.c',
+  'rltui/tui-screen.c',
+  'rltui/tui-rect.c',
   'rltui/tui.c',
   ]
 
 headers = [
+  'rltui/tui-buffer.h',
+  'rltui/tui-cell.h',
+  'rltui/tui-color.h',
   'rltui/tui-die.h',
   'rltui/tui-esc-code.h',
+  'rltui/tui-fx.h',
   'rltui/tui-global.h',
   'rltui/tui-input.h',
   'rltui/tui-point.h',
+  'rltui/tui-range.h',
   'rltui/tui-raw.h',
   'rltui/tui-rect.h',
+  'rltui/tui-screen.h',
   'rltui/tui-write.h',
   'rltui/tui.h',
   ]
