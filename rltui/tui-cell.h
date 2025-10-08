@@ -14,6 +14,7 @@ typedef struct Tui_Cell {
 } Tui_Cell, *Tui_Cells;
 
 int tui_cell_cmp(Tui_Cell *a, Tui_Cell *b);
+void tui_cell_colordiff_fmt(So *out, Tui_Cell *a, Tui_Cell *b);
 
 #define TUI_CELL_H
 #endif
