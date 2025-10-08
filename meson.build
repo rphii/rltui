@@ -32,13 +32,14 @@ headers = [
 
 rlc_dep = dependency('rlc', fallback : ['rlc', 'rlc_dep'], default_options: ['default_library=static'])
 rlso_dep = dependency('rlso', fallback : ['rlso', 'rlso_dep'], default_options: ['default_library=static'])
+rlwcwidth_dep = dependency('rlwcwidth', fallback : ['rlwcwidth', 'rlwcwidth_dep'], default_options: ['default_library=static'])
 
 install_headers(headers, subdir: 'rltui')
 install_headers('rltui.h')
 
 librltui = library('rltui',
   sources,
-  dependencies: [rlc_dep, rlso_dep],
+  dependencies: [rlc_dep, rlso_dep, rlwcwidth_dep],
   install: true,
   )
 
