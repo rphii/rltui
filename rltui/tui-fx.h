@@ -10,6 +10,8 @@ typedef struct Tui_Fx {
     bool wiggle;
 } Tui_Fx;
 
+int tui_fx_cmp(Tui_Fx a, Tui_Fx b);
+
 #define TUI_FX_H
 #endif
 
