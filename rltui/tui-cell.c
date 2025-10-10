@@ -3,6 +3,13 @@
 int tui_cell_cmp(Tui_Cell *a, Tui_Cell *b) {
     if(!a && !b) return 0;
     if(!a || !b) return -1;
+    if(a->ucp.val != b->ucp.val) return -1;
+    if(tui_color_cmp(a->fg, b->fg)) return -1;
+    if(tui_color_cmp(a->bg, b->bg)) return -1;
+    if(a->nleft != b->nleft) return -1;
+    if(tui_fx_cmp(a->fx, b->fx)) return -1;
+    //if(a->width != b->width) return -1;
+    return 0;
     return memcmp(a, b, sizeof(*a));
 }
 

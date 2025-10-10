@@ -15,8 +15,6 @@ typedef struct Tui_Screen {
 void tui_screen_resize(Tui_Screen *scr, Tui_Point dimension);
 void tui_screen_free(Tui_Screen *scr);
 void tui_screen_fmt(So *out, Tui_Screen *scr);
-void tui_screen_mono(Tui_Screen *scr, Tui_Color *fg, Tui_Color *bg, Tui_Fx *fx);
-void tui_screen_draw(Tui_Screen *scr, Tui_Rect rect, Tui_Color *fg, Tui_Color *bg, Tui_Fx *fx, So so);
 
 #define TUI_SCREEN_H
 #endif
