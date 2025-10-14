@@ -1,5 +1,6 @@
 #include "tui-screen.h"
 #include "tui-esc-code.h"
+#include "tui-die.h"
 #include <rlwcwidth.h>
 
 void tui_screen_resize(Tui_Screen *scr, Tui_Point dimension) {
@@ -74,8 +75,8 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
     //scr->y_range.iE = scr->dimension.y;
     for(pt.y = scr->y_range.i0; pt.y < scr->y_range.iE; ++pt.y) {
         Tui_Range x_range = scr->x_ranges[pt.y];
-        x_range.i0 = 0;
-        x_range.iE = scr->dimension.x;
+        //x_range.i0 = 0;
+        //x_range.iE = scr->dimension.x;
         size_t x_max_prev = x_range_prev.iE >= scr->dimension.x ? scr->dimension.x - 1 : x_range_prev.iE;
         if(x_range.iE > scr->dimension.x) x_range.iE = scr->dimension.x;
 
@@ -124,7 +125,11 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
             if(cell_curr->nleft) continue;
             tui_cell_colordiff_fmt(out, cell_curr, cell_prev);
 #if 1
-            so_uc_fmt_point(out, &cell_curr->ucp);
+            //so_extend(out, so("\e[41m"));
+            if(so_uc_fmt_point(out, &cell_curr->ucp)) {
+                tui_die("should handle invalid unicode point in buffer.. (should never even happen in the first place)");
+            }
+            //so_extend(out, so("\e[0m"));
 #else
 #if 0
             so_fmt(out, "%u", cell_curr->width);
