@@ -53,8 +53,12 @@ void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *b
                 So *ref = override.len ? &override : &line;
 
                 if(so_len(*ref)) {
-                    so_uc_point(*ref, &ucp);
-                    so_shift(ref, ucp.bytes);
+                    if(so_uc_point(*ref, &ucp)) {
+                        override = so("?");
+                        if(so_len(*ref)) so_shift(ref, 1);
+                    } else {
+                        so_shift(ref, ucp.bytes);
+                    }
                 } else {
                     ucp.val = 0;
                 }
@@ -62,6 +66,10 @@ void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *b
                 if(ucp.val == '\t') {
                     override = so("    ");
                     --pt.x;
+                    continue;
+                }
+
+                if(ucp.val < ' ' && ucp.val > 0) {
                     continue;
                 }
 
