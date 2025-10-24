@@ -1,6 +1,7 @@
 #include "tui-input.h"
 #include "tui-write.h"
 #include "tui-die.h"
+#include "tui-sync.h"
 #include <errno.h>
 #include <ctype.h>
 #include <rlso.h>
@@ -22,10 +23,10 @@ int tui_input_get_byte(unsigned char *c) {
 }
 
 int tui_input_get(Tui_Input_Raw *input) {
-    //if(!kbhit()) {
-    //    usleep(1e2);
-    //    return 0;
-    //}
+    if(!kbhit()) {
+        //usleep(1e2);
+        //return 0;
+    }
     unsigned char c;
     input->bytes = 0;
     int have_c = false;
@@ -73,16 +74,18 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     if(!iscntrl(input->c[0])) {
         decode->id = INPUT_TEXT;
         decode->text = so_ll(input->c, input->bytes);
+        decode->key = true;
         return true;
     }
     if(input->bytes == 1) {
-        decode->id = INPUT_KEY;
         switch(*input->c) {
-            case 0x1b: decode->key = KEY_ESC; break;
-            case 0x0d: decode->key = KEY_ENTER; break;
-            case 0x7f: decode->key = KEY_BACKSPACE; break;
-            default: decode->id = INPUT_NONE; break;
+            case 0x1b: decode->code = KEY_CODE_ESC; break;
+            case 0x0d: decode->code = KEY_CODE_ENTER; break;
+            case 0x7f: decode->code = KEY_CODE_BACKSPACE; break;
+            default: return INPUT_NONE;
         }
+        decode->key = true;
+        decode->id = INPUT_CODE;
     } else if(input->bytes > 3 && input->c[input->bytes - 1] == 'R') {
         So in = so_ll(input->c + 2, input->bytes - 3);
         So right, left = so_split_ch(in, ';', &right);
@@ -98,13 +101,14 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
         size_t len = so_len(in);
         if(len == 1) {
             switch(so_at(in, 0)) {
-                case 'A': decode->key = KEY_UP; break;
-                case 'B': decode->key = KEY_DOWN; break;
-                case 'C': decode->key = KEY_RIGHT; break;
-                case 'D': decode->key = KEY_LEFT; break;
-                default: return false;
+                case 'A': decode->code = KEY_CODE_UP; break;
+                case 'B': decode->code = KEY_CODE_DOWN; break;
+                case 'C': decode->code = KEY_CODE_RIGHT; break;
+                case 'D': decode->code = KEY_CODE_LEFT; break;
+                default: return INPUT_NONE;
             }
-            decode->id = INPUT_KEY;
+            decode->key = true;
+            decode->id = INPUT_CODE;
         } else if(so_at(in, 0) == '<' && len >= 2) {
             //printff("MOUSE%u",rand());
             decode->mouse = mouse_prev;
@@ -155,10 +159,55 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
 }
 
 
-bool tui_input_process(Tui_Input *ti) {
-    if(!tui_input_get(&ti->_raw)) return false;
-    bool result = tui_input_decode(&ti->_raw, ti);
+bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input) {
+    ASSERT_ARG(raw);
+    ASSERT_ARG(input);
+    if(!tui_input_get(raw)) return false;
+    bool result = tui_input_decode(raw, input);
     return result;
+}
+
+Tui_Input_State_List tui_input_state(Tui_Input_State_List now, Tui_Input_State_List old) {
+    if(now > old) return INPUT_STATE_PRESS;
+    if(now && old) return INPUT_STATE_REPEAT;
+    if(now < old) return INPUT_STATE_NONE;
+    return INPUT_STATE_NONE;
+}
+
+bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Gen *gen) {
+    ASSERT_ARG(sync);
+    ASSERT_ARG(gen);
+    gen->old = gen->now;
+    if(tui_input_process_raw(&gen->raw, &gen->now)) {
+        Tui_Input input = gen->now;
+        input.alt = tui_input_state(input.alt, gen->old.alt);
+        input.esc = tui_input_state(input.esc, gen->old.esc);
+        input.key = tui_input_state(input.key, gen->old.key);
+        input.ctrl = tui_input_state(input.ctrl, gen->old.ctrl);
+        input.shift = tui_input_state(input.shift, gen->old.shift);
+        pthread_mutex_lock(&sync->mtx);
+        array_push(sync->inputs, input);
+        pthread_mutex_unlock(&sync->mtx);
+        tui_sync_main_update(sync_m);
+    }
+    pthread_mutex_lock(&sync->mtx);
+    while(!sync->quit && sync->idle) {
+        pthread_cond_wait(&sync->cond, &sync->mtx);
+    }
+    bool quit = sync->quit;
+    pthread_mutex_unlock(&sync->mtx);
+    return !quit;
+}
+
+void tui_input_get_stack(Tui_Sync_Input *sync, Tui_Inputs *inputs) {
+    ASSERT_ARG(sync);
+    ASSERT_ARG(inputs);
+    pthread_mutex_lock(&sync->mtx);
+    size_t len = array_len(sync->inputs);
+    for(size_t i = 0; i < len; ++i) {
+        array_push(*inputs, array_pop(sync->inputs));
+    }
+    pthread_mutex_unlock(&sync->mtx);
 }
 
 void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui_Point *point) {
