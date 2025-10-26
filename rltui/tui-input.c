@@ -70,11 +70,27 @@ int tui_input_get(Tui_Input_Raw *input) {
 bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     Tui_Mouse mouse_prev = decode->mouse;
     decode->id = INPUT_NONE;
-    if(input->bytes == 0) return false;
+    if(input->bytes == 0) {
+        bool changed = false;
+#if 0
+        if(decode->esc || decode->key.down ||
+           decode->alt.down || decode->ctrl.down ||
+           decode->shift.down) {
+            changed = true;
+        }
+        /* reset key states (keep mouse as is) */
+        decode->esc.down = false;
+        decode->key.down = false;
+        decode->alt.down = false;
+        decode->ctrl.down = false;
+        decode->shift.down = false;
+#endif
+        return changed;
+    }
     if(!iscntrl(input->c[0])) {
         decode->id = INPUT_TEXT;
         decode->text = so_ll(input->c, input->bytes);
-        decode->key = true;
+        //decode->key.down = true;
         return true;
     }
     if(input->bytes == 1) {
@@ -84,7 +100,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             case 0x7f: decode->code = KEY_CODE_BACKSPACE; break;
             default: return INPUT_NONE;
         }
-        decode->key = true;
+        //decode->key.down = true;
         decode->id = INPUT_CODE;
     } else if(input->bytes > 3 && input->c[input->bytes - 1] == 'R') {
         So in = so_ll(input->c + 2, input->bytes - 3);
@@ -107,7 +123,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
                 case 'D': decode->code = KEY_CODE_LEFT; break;
                 default: return INPUT_NONE;
             }
-            decode->key = true;
+            //decode->key.down = true;
             decode->id = INPUT_CODE;
         } else if(so_at(in, 0) == '<' && len >= 2) {
             //printff("MOUSE%u",rand());
@@ -117,7 +133,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             So sonums = so_sub(in, 1, len - 1), sonum = SO;
             size_t i = 0;
             Tui_Mouse_List mouse_id = MOUSE_NONE;
-            int mouse_val;
+            bool mouse_val;
             for(sonum = SO, i = 0; so_splice(sonums, &sonum, ';'); ++i) {
                 if(so_is_zero(sonum)) { --i; continue; }
                 unsigned int num;
@@ -139,16 +155,16 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             }
             if(end == 'm') {
                 mouse_val = (end == 'M');
-                decode->mouse.l = false;
-                decode->mouse.m = false;
-                decode->mouse.r = false;
+                decode->mouse.l.down = false;
+                decode->mouse.m.down = false;
+                decode->mouse.r.down = false;
             }
             /* post process */
             decode->mouse.scroll = 0;
             switch(mouse_id) {
-                case MOUSE_LEFT: decode->mouse.l = mouse_val; break;
-                case MOUSE_MIDDLE: decode->mouse.m = mouse_val; break;
-                case MOUSE_RIGHT: decode->mouse.r = mouse_val; break;
+                case MOUSE_LEFT: decode->mouse.l.down = mouse_val; break;
+                case MOUSE_MIDDLE: decode->mouse.m.down = mouse_val; break;
+                case MOUSE_RIGHT: decode->mouse.r.down = mouse_val; break;
                 case MOUSE_WHEEL: decode->mouse.scroll = mouse_val; break;
                 default: break;
             }
@@ -162,16 +178,23 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
 bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input) {
     ASSERT_ARG(raw);
     ASSERT_ARG(input);
-    if(!tui_input_get(raw)) return false;
+    tui_input_get(raw);
     bool result = tui_input_decode(raw, input);
     return result;
 }
 
-Tui_Input_State_List tui_input_state(Tui_Input_State_List now, Tui_Input_State_List old) {
-    if(now > old) return INPUT_STATE_PRESS;
-    if(now && old) return INPUT_STATE_REPEAT;
-    if(now < old) return INPUT_STATE_NONE;
-    return INPUT_STATE_NONE;
+Tui_Input_State tui_input_state(Tui_Input_State now, Tui_Input_State old) {
+    Tui_Input_State result = {0};
+    if(now.down > old.down) {
+        result.press = true;
+        result.down = true;
+    } else if(now.down && old.down) {
+        result.repeat = true;
+        result.down = true;
+    } else if(now.down < old.down) {
+        result.release = true;
+    }
+    return result;
 }
 
 bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Gen *gen) {
@@ -180,11 +203,14 @@ bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Ge
     gen->old = gen->now;
     if(tui_input_process_raw(&gen->raw, &gen->now)) {
         Tui_Input input = gen->now;
-        input.alt = tui_input_state(input.alt, gen->old.alt);
-        input.esc = tui_input_state(input.esc, gen->old.esc);
-        input.key = tui_input_state(input.key, gen->old.key);
-        input.ctrl = tui_input_state(input.ctrl, gen->old.ctrl);
-        input.shift = tui_input_state(input.shift, gen->old.shift);
+        //input.alt = tui_input_state(input.alt, gen->old.alt);
+        //input.esc = tui_input_state(input.esc, gen->old.esc);
+        //input.key = tui_input_state(input.key, gen->old.key);
+        //input.ctrl = tui_input_state(input.ctrl, gen->old.ctrl);
+        //input.shift = tui_input_state(input.shift, gen->old.shift);
+        input.mouse.l = tui_input_state(input.mouse.l, gen->old.mouse.l);
+        input.mouse.r = tui_input_state(input.mouse.r, gen->old.mouse.r);
+        input.mouse.m = tui_input_state(input.mouse.m, gen->old.mouse.m);
         pthread_mutex_lock(&sync->mtx);
         array_push(sync->inputs, input);
         pthread_mutex_unlock(&sync->mtx);
