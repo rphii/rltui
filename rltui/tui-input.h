@@ -29,12 +29,12 @@ typedef enum {
     INPUT_MOUSE,
 } Tui_Input_List;
 
-typedef enum Tui_Input_State_List {
-    INPUT_STATE_NONE,
-    INPUT_STATE_PRESS,
-    INPUT_STATE_REPEAT,
-    INPUT_STATE_RELEASE,
-} Tui_Input_State_List;
+typedef struct Tui_Input_State {
+    bool down:1;
+    bool press:1;
+    bool repeat:1;
+    bool release:1;
+} Tui_Input_State;
 
 typedef enum {
     MOUSE_NONE,
@@ -61,16 +61,14 @@ typedef struct Tui_Input_Raw {
     unsigned char c[TUI_INPUT_RAW_MAX];
     unsigned char bytes;
     bool carry_esc;
-    //Tui_Mouse_List mouse;
-    //int val;
 } Tui_Input_Raw;
 
 typedef struct Tui_Mouse {
     Tui_Point pos;
     int scroll;
-    Tui_Input_State_List l;
-    Tui_Input_State_List m;
-    Tui_Input_State_List r;
+    Tui_Input_State l;
+    Tui_Input_State m;
+    Tui_Input_State r;
 } Tui_Mouse;
 
 typedef struct Tui_Input {
@@ -79,11 +77,10 @@ typedef struct Tui_Input {
     Tui_Key_Code_List code;
     Tui_Mouse mouse;
     So text;
-    Tui_Input_State_List key;
-    Tui_Input_State_List esc;
-    Tui_Input_State_List shift;
-    Tui_Input_State_List ctrl;
-    Tui_Input_State_List alt;
+    bool esc;
+    bool shift;
+    bool ctrl;
+    bool alt;
 } Tui_Input, *Tui_Inputs;
 
 typedef struct Tui_Input_Gen {
