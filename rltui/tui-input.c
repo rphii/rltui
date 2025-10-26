@@ -133,7 +133,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             So sonums = so_sub(in, 1, len - 1), sonum = SO;
             size_t i = 0;
             Tui_Mouse_List mouse_id = MOUSE_NONE;
-            bool mouse_val;
+            int mouse_val;
             for(sonum = SO, i = 0; so_splice(sonums, &sonum, ';'); ++i) {
                 if(so_is_zero(sonum)) { --i; continue; }
                 unsigned int num;
