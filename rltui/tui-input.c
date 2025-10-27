@@ -25,7 +25,7 @@ int tui_input_get_byte(unsigned char *c) {
 int tui_input_get(Tui_Input_Raw *input) {
     if(!kbhit()) {
         //usleep(1e1);
-        return 0;
+        //return 0;
     }
     unsigned char c;
     input->bytes = 0;
