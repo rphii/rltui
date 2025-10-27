@@ -127,7 +127,9 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
 #if 1
             //so_extend(out, so("\e[41m"));
             if(so_uc_fmt_point(out, &cell_curr->ucp)) {
-                tui_die("should handle invalid unicode point in buffer.. (should never even happen in the first place)");
+                cell_curr->ucp.val = '?';
+                cell_curr->ucp.bytes = 1;
+                //tui_die("should handle invalid unicode point in buffer.. (should never even happen in the first place)");
             }
             //so_extend(out, so("\e[0m"));
 #else
