@@ -1,4 +1,4 @@
-project('rltui', 'c', meson_version: '>=1.1', version: '0.0.1')
+project('rltui', 'c', meson_version: '>=1.1', version: '0.0.3')
 
 sources = [
   'rltui/tui-buffer.c',
@@ -12,6 +12,7 @@ sources = [
   'rltui/tui-raw.c',
   'rltui/tui-rect.c',
   'rltui/tui-screen.c',
+  'rltui/tui-sync.c',
   'rltui/tui.c',
   ]
 
@@ -29,6 +30,7 @@ headers = [
   'rltui/tui-raw.h',
   'rltui/tui-rect.h',
   'rltui/tui-screen.h',
+  'rltui/tui-sync.h',
   'rltui/tui-write.h',
   'rltui/tui.h',
   ]

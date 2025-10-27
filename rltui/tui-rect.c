@@ -24,3 +24,10 @@ bool tui_rect_encloses_point(Tui_Rect rect, Tui_Point pt) {
     return false;
 }
 
+Tui_Point tui_rect_project_point(Tui_Rect rc, Tui_Point pt) {
+    Tui_Point result = pt;
+    result.x -= rc.anc.x;
+    result.y -= rc.anc.y;
+    return result;
+}
+
