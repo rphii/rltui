@@ -90,7 +90,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     if(!iscntrl(input->c[0])) {
         decode->id = INPUT_TEXT;
         if(so_uc_point(so_ll(input->c, input->bytes), &decode->text)) {
-            exit(1);
+            return false;
         }
         //decode->key.down = true;
         return true;
