@@ -16,6 +16,7 @@ typedef struct Tui_Rect {
 
 bool tui_rect_contains_point(Tui_Rect rect, Tui_Point pt);
 bool tui_rect_encloses_point(Tui_Rect rect, Tui_Point pt);
+Tui_Point tui_rect_project_point(Tui_Rect rect, Tui_Point pt);
 
 #define TUI_RECT_H
 #endif
