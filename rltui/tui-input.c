@@ -24,7 +24,7 @@ int tui_input_get_byte(unsigned char *c) {
 
 int tui_input_get(Tui_Input_Raw *input) {
     if(!kbhit()) {
-        //usleep(1e2);
+        //usleep(1e1);
         //return 0;
     }
     unsigned char c;
@@ -89,7 +89,9 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     }
     if(!iscntrl(input->c[0])) {
         decode->id = INPUT_TEXT;
-        decode->text = so_ll(input->c, input->bytes);
+        if(so_uc_point(so_ll(input->c, input->bytes), &decode->text)) {
+            exit(1);
+        }
         //decode->key.down = true;
         return true;
     }
@@ -113,7 +115,8 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
         pthread_cond_signal(&pos->cond);
         pthread_mutex_unlock(&pos->mtx);
     } else if(input->bytes > 2 && input->c[0] == '\x1b' && input->c[1] == '[') {
-        So in = so_ll(input->c + 2, input->bytes - 2);
+        int in_offs = 2;
+        So in = so_ll(input->c + in_offs, input->bytes - 2);
         size_t len = so_len(in);
         if(len == 1) {
             switch(so_at(in, 0)) {
@@ -126,9 +129,10 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             //decode->key.down = true;
             decode->id = INPUT_CODE;
         } else if(so_at(in, 0) == '<' && len >= 2) {
-            //printff("MOUSE%u",rand());
             decode->mouse = mouse_prev;
             decode->id = INPUT_MOUSE;
+            size_t iE = so_find_any(in, so("mM"));
+            in = so_iE(in, iE < in.len ? iE + 1 : iE);
             unsigned char end = so_atE(in);
             So sonums = so_sub(in, 1, len - 1), sonum = SO;
             size_t i = 0;
@@ -168,6 +172,9 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
                 case MOUSE_WHEEL: decode->mouse.scroll = mouse_val; break;
                 default: break;
             }
+            if(iE + 1 + in_offs < input->bytes) {
+                input->next = iE + 1 + in_offs;
+            }
             //printff("WHEEL:%i",decode->mouse.scroll);
         }
     }
@@ -178,7 +185,6 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
 bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input) {
     ASSERT_ARG(raw);
     ASSERT_ARG(input);
-    tui_input_get(raw);
     bool result = tui_input_decode(raw, input);
     return result;
 }
@@ -200,9 +206,18 @@ Tui_Input_State tui_input_state(Tui_Input_State now, Tui_Input_State old) {
 bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Gen *gen) {
     ASSERT_ARG(sync);
     ASSERT_ARG(gen);
+    bool done = false;
+    bool update = false;
     gen->old = gen->now;
-    if(tui_input_process_raw(&gen->raw, &gen->now)) {
-        Tui_Input input = gen->now;
+    tui_input_get(&gen->raw);
+    while(!done) {
+        Tui_Input process = gen->now;
+        if(update) {
+            gen->old = process;
+        }
+        if(!tui_input_decode(&gen->raw, &process)) break;
+        Tui_Input input = process;
+        gen->now = process;
         //input.alt = tui_input_state(input.alt, gen->old.alt);
         //input.esc = tui_input_state(input.esc, gen->old.esc);
         //input.key = tui_input_state(input.key, gen->old.key);
@@ -211,9 +226,22 @@ bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Ge
         input.mouse.l = tui_input_state(input.mouse.l, gen->old.mouse.l);
         input.mouse.r = tui_input_state(input.mouse.r, gen->old.mouse.r);
         input.mouse.m = tui_input_state(input.mouse.m, gen->old.mouse.m);
+
         pthread_mutex_lock(&sync->mtx);
         array_push(sync->inputs, input);
         pthread_mutex_unlock(&sync->mtx);
+        update = true;
+
+        if(gen->raw.next && gen->raw.next < gen->raw.bytes) {
+            memmove(gen->raw.c, gen->raw.c + gen->raw.next, gen->raw.bytes - gen->raw.next);
+            gen->raw.bytes = gen->raw.bytes - gen->raw.next;
+            gen->raw.next = 0;
+        } else {
+            done = true;
+        }
+
+    }
+    if(update) {
         tui_sync_main_update(sync_m);
     }
     pthread_mutex_lock(&sync->mtx);

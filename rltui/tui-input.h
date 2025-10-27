@@ -60,6 +60,7 @@ typedef struct Tui_Input_Special {
 typedef struct Tui_Input_Raw {
     unsigned char c[TUI_INPUT_RAW_MAX];
     unsigned char bytes;
+    unsigned int next;
     bool carry_esc;
 } Tui_Input_Raw;
 
@@ -76,7 +77,7 @@ typedef struct Tui_Input {
     Tui_Input_List id;
     Tui_Key_Code_List code;
     Tui_Mouse mouse;
-    So text;
+    So_Uc_Point text;
     bool esc;
     bool shift;
     bool ctrl;
