@@ -25,7 +25,7 @@ int tui_input_get_byte(unsigned char *c) {
 int tui_input_get(Tui_Input_Raw *input) {
     if(!kbhit()) {
         //usleep(1e1);
-        //return 0;
+        return 0;
     }
     unsigned char c;
     input->bytes = 0;
@@ -207,12 +207,12 @@ bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Ge
     ASSERT_ARG(sync);
     ASSERT_ARG(gen);
     bool done = false;
-    bool update = false;
+    bool loop = false;
     gen->old = gen->now;
     tui_input_get(&gen->raw);
     while(!done) {
         Tui_Input process = gen->now;
-        if(update) {
+        if(loop) {
             gen->old = process;
         }
         if(!tui_input_decode(&gen->raw, &process)) break;
@@ -230,7 +230,8 @@ bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Ge
         pthread_mutex_lock(&sync->mtx);
         array_push(sync->inputs, input);
         pthread_mutex_unlock(&sync->mtx);
-        update = true;
+        tui_sync_main_update(sync_m);
+        loop = true;
 
         if(gen->raw.next && gen->raw.next < gen->raw.bytes) {
             memmove(gen->raw.c, gen->raw.c + gen->raw.next, gen->raw.bytes - gen->raw.next);
@@ -241,9 +242,7 @@ bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Ge
         }
 
     }
-    if(update) {
-        tui_sync_main_update(sync_m);
-    }
+
     pthread_mutex_lock(&sync->mtx);
     while(!sync->quit && sync->idle) {
         pthread_cond_wait(&sync->cond, &sync->mtx);
