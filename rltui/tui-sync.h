@@ -32,6 +32,7 @@ typedef struct Tui_Sync_Input {
 
 void tui_sync_main_update(Tui_Sync_Main *sync);
 void tui_sync_main_render(Tui_Sync_Main *sync);
+void tui_sync_main_both(Tui_Sync_Main *sync);
 
 void tui_sync_draw(Tui_Sync_Draw *sync);
 void tui_sync_redraw(Tui_Sync_Draw *sync);
