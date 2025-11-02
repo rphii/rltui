@@ -1,6 +1,28 @@
 #include "tui-text.h"
 #include "rlwcwidth.h"
 
+void tui_text_line_clear(Tui_Text_Line *tx) {
+    so_clear(&tx->so);
+    tx->visual_len = 0;
+}
+
+void tui_text_line_fmt(Tui_Text_Line *tx, const char *fmt, ...) {
+    So tmp = SO;
+    va_list va;
+    va_start(va, fmt);
+    so_fmt_va(&tmp, fmt, va);
+    va_end(va);
+    So_Uc_Point ucp;
+    for(size_t i = 0; i < so_len(tmp); ++i) {
+        int r = so_uc_point(so_i0(tmp, i), &ucp);
+        if(r) continue;
+        tui_text_line_push(tx, ucp);
+        i += (ucp.bytes ? ucp.bytes - 1 : 0);
+    }
+    so_free(&tmp);
+}
+
+
 void tui_text_line_push(Tui_Text_Line *tx, So_Uc_Point ucp) {
     so_uc_fmt_point(&tx->so, &ucp);
     if(ucp.val >= ' ') {

@@ -7,6 +7,8 @@ typedef struct Tui_Text_Line {
     size_t visual_len;
 } Tui_Text_Line;
 
+void tui_text_line_clear(Tui_Text_Line *tx);
+void tui_text_line_fmt(Tui_Text_Line *tx, const char *fmt, ...);
 void tui_text_line_push(Tui_Text_Line *tx, So_Uc_Point ucp);
 So_Uc_Point tui_text_line_pop(Tui_Text_Line *tx);
 
