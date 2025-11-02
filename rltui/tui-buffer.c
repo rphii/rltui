@@ -46,6 +46,7 @@ void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *b
         if(!so_splice(so, &line, '\n')) break;
         size_t nleft_count = 0;
         size_t nleft_width = 0;
+        so_clear(&override);
         for(pt.x = rect.anc.x; (pt.x < rect.anc.x + rect.dim.x) || nleft_width; ++pt.x) {
 
             if(!nleft_count && !nleft_width) {
