@@ -13,6 +13,7 @@ sources = [
   'rltui/tui-rect.c',
   'rltui/tui-screen.c',
   'rltui/tui-sync.c',
+  'rltui/tui-text.c',
   'rltui/tui.c',
   ]
 
@@ -31,6 +32,7 @@ headers = [
   'rltui/tui-rect.h',
   'rltui/tui-screen.h',
   'rltui/tui-sync.h',
+  'rltui/tui-text.h',
   'rltui/tui-write.h',
   'rltui/tui.h',
   ]
