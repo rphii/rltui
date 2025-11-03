@@ -24,8 +24,8 @@ void tui_text_line_fmt(Tui_Text_Line *tx, const char *fmt, ...) {
 
 
 void tui_text_line_push(Tui_Text_Line *tx, So_Uc_Point ucp) {
-    so_uc_fmt_point(&tx->so, &ucp);
     if(ucp.val >= ' ') {
+        so_uc_fmt_point(&tx->so, &ucp);
         tx->visual_len += rlwcwidth(ucp.val);
     }
 }

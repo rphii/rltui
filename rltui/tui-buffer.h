@@ -3,10 +3,12 @@
 #include "tui-cell.h"
 #include "tui-rect.h"
 #include "tui-point.h"
+#include "tui-cursor.h"
 
 typedef struct Tui_Buffer {
     Tui_Cells cells;
     Tui_Point dimension;
+    Tui_Cursor cursor;
 } Tui_Buffer;
 
 void tui_buffer_resize(Tui_Buffer *buf, Tui_Point dimension);
