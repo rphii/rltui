@@ -51,6 +51,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
     So override = SO;
     So_Uc_Point ucp;
     bool first = true;
+    //printff("\rHELLO");
     for(pt.y = rect.anc.y + pt0.y; pt.y < rect.anc.y + rect.dim.y; ++pt.y) {
 
         if(!first) {
@@ -127,7 +128,11 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
 
             } else {
 
-                if(!tui_rect_encloses_point(cnv, pt)) continue;
+                if(!tui_rect_encloses_point(cnv, pt)) {
+                    nleft_width = 0;
+                    nleft_count = 0;
+                    continue;
+                }
                 Tui_Cell *cell = tui_buffer_at(buf, pt);
                 cell->bg = bg ? *bg : (Tui_Color){0};
                 cell->fg = fg ? *fg : (Tui_Color){0};
@@ -241,4 +246,19 @@ void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *b
     }
 }
 
+void tui_buffer_draw_subbuf(Tui_Buffer *buf, Tui_Rect rect, Tui_Buffer *sub) {
+    for(size_t y = rect.anc.y, ys = 0; y < rect.anc.y + rect.dim.y; ++y, ++ys) {
+        if(y >= buf->dimension.y) continue;
+        if(ys >= sub->dimension.y) continue;
+        for(size_t x = rect.anc.x, xs = 0; x < rect.anc.x + rect.dim.x; ++x, ++xs) {
+            if(x >= buf->dimension.x) continue;
+            if(xs >= sub->dimension.x) continue;
+            Tui_Point pt_dst = { .x = x, .y = y };
+            Tui_Point pt_src = { .x = xs, .y = ys };
+            Tui_Cell *dst = tui_buffer_at(buf, pt_dst);
+            Tui_Cell *src = tui_buffer_at(sub, pt_src);
+            *dst = *src;
+        }
+    }
+}
 
