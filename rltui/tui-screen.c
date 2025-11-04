@@ -70,14 +70,12 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
     Tui_Point pt;
     Tui_Range x_range_prev = {0};
     ssize_t y_prev = 0;
-    Tui_Cell *cell_prev = 0;
+    Tui_Cell *cell_prev = &scr->cell_prev;
     bool update_cursor = false;
     //scr->y_range.i0 = 0;
     //scr->y_range.iE = scr->dimension.y;
-    if(scr->old.cursor.id != scr->now.cursor.id) {
+    if(scr->old.cursor.id && !scr->now.cursor.id) {
         update_cursor = true;
-    }
-    if(scr->old.cursor.id || scr->now.cursor.id) {
         so_extend(out, so(TUI_ESC_CODE_CURSOR_HIDE));
     }
     for(pt.y = scr->y_range.i0; pt.y < scr->y_range.iE; ++pt.y) {
@@ -94,6 +92,10 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
         }
 #else
 #if 1
+        if(!update_cursor && (x_range.i0 || x_range.iE)) {
+            update_cursor = true;
+            so_extend(out, so(TUI_ESC_CODE_CURSOR_HIDE));
+        }
         if(!x_range.i0 && x_range.iE && (x_range_prev.i0 || x_range_prev.iE)) {
             if(pt.y - y_prev > 1) {
                 so_fmt(out, "\r\e[%uB", pt.y - y_prev);
@@ -152,7 +154,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
 #endif
 #endif
                 //*cell_old = *cell_now; // can actually replace with a memcpy from i0..iE
-            cell_prev = cell_curr;
+            *cell_prev = *cell_curr;
         }
 
         if(x_range.i0 < x_range.iE) {
