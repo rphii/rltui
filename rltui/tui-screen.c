@@ -70,7 +70,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
     Tui_Point pt;
     Tui_Range x_range_prev = {0};
     ssize_t y_prev = 0;
-    Tui_Cell *cell_prev = &scr->cell_prev;
+    Tui_Cell *cell_prev = 0; //&scr->cell_prev;
     bool update_cursor = false;
     //scr->y_range.i0 = 0;
     //scr->y_range.iE = scr->dimension.y;
@@ -154,7 +154,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
 #endif
 #endif
                 //*cell_old = *cell_now; // can actually replace with a memcpy from i0..iE
-            *cell_prev = *cell_curr;
+            cell_prev = cell_curr;
         }
 
         if(x_range.i0 < x_range.iE) {
