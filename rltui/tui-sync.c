@@ -16,6 +16,15 @@ void tui_sync_main_render(Tui_Sync_Main *sync) {
     pthread_mutex_unlock(&sync->mtx);
 }
 
+void tui_sync_main_both(Tui_Sync_Main *sync) {
+    ASSERT_ARG(sync);
+    pthread_mutex_lock(&sync->mtx);
+    ++sync->update_do;
+    ++sync->render_do;
+    pthread_cond_signal(&sync->cond);
+    pthread_mutex_unlock(&sync->mtx);
+}
+
 
 void tui_sync_draw(Tui_Sync_Draw *sync) {
     ASSERT_ARG(sync);

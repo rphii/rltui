@@ -10,6 +10,7 @@ typedef struct Tui_Screen {
     Tui_Ranges x_ranges;
     Tui_Range  y_range;
     Tui_Point  dimension;
+    Tui_Cell   cell_prev;
 } Tui_Screen;
 
 void tui_screen_resize(Tui_Screen *scr, Tui_Point dimension);
