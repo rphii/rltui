@@ -48,6 +48,7 @@ void tui_cell_colordiff_fmt(So *out, Tui_Cell *a, Tui_Cell *b) {
     }
     /* check if we do anything */
     if(reset_fg || reset_bg || do_fg.type || do_bg.type ||
+            do_fx.bold || do_fx.it || do_fx.ul ||
             reset_fx.bold || reset_fx.it || reset_fx.ul) {
         any = true;
         so_extend(out, so("\e["));

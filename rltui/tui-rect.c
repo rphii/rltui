@@ -1,5 +1,11 @@
 #include "tui-rect.h"
 
+int tui_rect_cmp(Tui_Rect a, Tui_Rect b) {
+    if(tui_point_cmp(a.anc, b.anc)) return -1;
+    if(tui_point_cmp(a.dim, b.dim)) return -1;
+    return 0;
+}
+
 bool tui_rect_contains_point(Tui_Rect rect, Tui_Point pt) {
     if(!rect.dim.y || !rect.dim.x) {
         return false;

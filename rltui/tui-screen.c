@@ -70,9 +70,14 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
     Tui_Point pt;
     Tui_Range x_range_prev = {0};
     ssize_t y_prev = 0;
-    Tui_Cell *cell_prev = 0;
+    Tui_Cell *cell_prev = 0; //&scr->cell_prev;
+    bool update_cursor = false;
     //scr->y_range.i0 = 0;
     //scr->y_range.iE = scr->dimension.y;
+    if(scr->old.cursor.id && !scr->now.cursor.id) {
+        update_cursor = true;
+        so_extend(out, so(TUI_ESC_CODE_CURSOR_HIDE));
+    }
     for(pt.y = scr->y_range.i0; pt.y < scr->y_range.iE; ++pt.y) {
         Tui_Range x_range = scr->x_ranges[pt.y];
         //x_range.i0 = 0;
@@ -87,6 +92,10 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
         }
 #else
 #if 1
+        if(!update_cursor && (x_range.i0 || x_range.iE)) {
+            update_cursor = true;
+            so_extend(out, so(TUI_ESC_CODE_CURSOR_HIDE));
+        }
         if(!x_range.i0 && x_range.iE && (x_range_prev.i0 || x_range_prev.iE)) {
             if(pt.y - y_prev > 1) {
                 so_fmt(out, "\r\e[%uB", pt.y - y_prev);
@@ -124,6 +133,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
             Tui_Cell *cell_curr = tui_buffer_at(&scr->now, pt);
             if(cell_curr->nleft) continue;
             tui_cell_colordiff_fmt(out, cell_curr, cell_prev);
+            update_cursor = true;
 #if 1
             //so_extend(out, so("\e[41m"));
             if(so_uc_fmt_point(out, &cell_curr->ucp)) {
@@ -152,7 +162,24 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
             y_prev = pt.y;
         }
     }
+    if(update_cursor && scr->now.cursor.id) {
+        so_fmt(out, TUI_ESC_CODE_GOTO(scr->now.cursor.pt.x, scr->now.cursor.pt.y));
+        switch(scr->now.cursor.id) {
+            case TUI_CURSOR_BAR: {
+                so_extend(out, so(TUI_ESC_CODE_CURSOR_BAR));
+            } break;
+            case TUI_CURSOR_BLOCK: {
+                so_extend(out, so(TUI_ESC_CODE_CURSOR_BLOCK));
+            } break;
+            default: {
+                printff("invalid cursor id: %u", scr->now.cursor.id);
+                tui_die("see above");
+            } break;
+        }
+        so_extend(out, so(TUI_ESC_CODE_CURSOR_SHOW));
+    }
     memcpy(scr->old.cells, scr->now.cells, sizeof(*scr->old.cells) * scr->dimension.x * scr->dimension.y);
+    scr->old.cursor = scr->now.cursor;
     tui_buffer_clear(&scr->now);
 }
 
