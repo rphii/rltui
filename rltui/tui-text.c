@@ -1,5 +1,6 @@
 #include "tui-text.h"
 #include "rlwcwidth.h"
+#include "tui.h"
 
 void tui_text_line_clear(Tui_Text_Line *tx) {
     so_clear(&tx->so);
@@ -25,8 +26,12 @@ void tui_text_line_fmt(Tui_Text_Line *tx, const char *fmt, ...) {
 
 void tui_text_line_push(Tui_Text_Line *tx, So_Uc_Point ucp) {
     if(ucp.val >= ' ') {
-        so_uc_fmt_point(&tx->so, &ucp);
-        tx->visual_len += rlwcwidth(ucp.val);
+        if(!so_uc_fmt_point(&tx->so, &ucp)) {
+            tx->visual_len += rlwcwidth(ucp.val);
+        } else {
+            so_extend(&tx->so, so(TUI_UNKNOWN_CHARACTER_CSTR));
+            tx->visual_len += rlwcwidth(TUI_UNKNOWN_CHARACTER_POINT);
+        }
     }
 }
 

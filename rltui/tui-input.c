@@ -108,12 +108,15 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
         So in = so_ll((char *)input->c + 2, input->bytes - 3);
         So right, left = so_split_ch(in, ';', &right);
         Tui_Input_Special_Cursor_Position *pos = &decode->special.cursor_position;
-        so_as_ssize(left, &pos->point.y, 10);
-        so_as_ssize(right, &pos->point.x, 10);
-        pthread_mutex_lock(&pos->mtx);
-        pos->ready = true;
-        pthread_cond_signal(&pos->cond);
-        pthread_mutex_unlock(&pos->mtx);
+        int error = 0;
+        error |= so_as_ssize(left, &pos->point.y, 10);
+        error |= so_as_ssize(right, &pos->point.x, 10);
+        if(!error) {
+            pthread_mutex_lock(&pos->mtx);
+            pos->ready = true;
+            pthread_cond_signal(&pos->cond);
+            pthread_mutex_unlock(&pos->mtx);
+        }
     } else if(input->bytes > 2 && input->c[0] == '\x1b' && input->c[1] == '[') {
         int in_offs = 2;
         So in = so_ll(input->c + in_offs, input->bytes - 2);

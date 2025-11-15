@@ -1,4 +1,4 @@
-#include "tui-main.h"
+#include "tui-core.h"
 #include "tui-esc-code.h"
 #include <errno.h>
 #include <unistd.h>
@@ -7,14 +7,7 @@
 
 /* struct s{{{ */
 
-typedef struct Tui_Main_Callbacks {
-    Tui_Main_Input_Callback input;
-    Tui_Main_Update_Callback update;
-    Tui_Main_Render_Callback render;
-    Tui_Main_Resized_Callback resized;
-} Tui_Main_Callbacks;
-
-typedef struct Tui_Main {
+typedef struct Tui_Core {
     Tui_Sync_Main sync_main;
     Tui_Sync_Input sync_input;
     Tui_Sync_Draw sync_draw;
@@ -25,32 +18,32 @@ typedef struct Tui_Main {
     Tui_Buffer buffer;
     Tui_Input_Gen input_gen;
     Tui_Inputs inputs;
-    Tui_Main_Callbacks callbacks;
+    Tui_Core_Callbacks callbacks;
     bool quit;
     _Atomic bool resized;
     void *user;
-} Tui_Main;
+} Tui_Core;
 
 /* }}} */
 
-static Tui_Main *g_tui_main;
+static Tui_Core *g_tui_main;
 
-Tui_Main *tui_global_get(void) {
+Tui_Core *tui_global_get(void) {
     return g_tui_main;
 }
 
-void tui_global_set(Tui_Main *tui) {
+void tui_global_set(Tui_Core *tui) {
     g_tui_main = tui;
 }
 
-void tui_main_signal_winch(int x) {
-    Tui_Main *tui = tui_global_get();
+void tui_core_signal_winch(int x) {
+    Tui_Core *tui = tui_global_get();
     tui->resized = true;
     pthread_cond_signal(&tui->sync_main.cond);
 }
 
 void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
-    Tui_Main *tui = void_ctx;
+    Tui_Core *tui = void_ctx;
     for(;;) {
         if(!tui_input_process(&tui->sync_main, &tui->sync_input, &tui->input_gen)) break;
     }
@@ -59,7 +52,7 @@ void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
 
 
 void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
-    Tui_Main *tui = void_ctx;
+    Tui_Core *tui = void_ctx;
     So draw = SO;
 
     while(!*quit) {
@@ -125,16 +118,19 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
     return 0;
 }
 
-struct Tui_Main *tui_main_new(void) {
-    Tui_Main *result;
-    NEW(Tui_Main, result);
+struct Tui_Core *tui_core_new(void) {
+    Tui_Core *result;
+    NEW(Tui_Core, result);
     return result;
 }
 
-int tui_main_init(Tui_Main *tui) {
+int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks) {
     tui_global_set(tui);
+    if(callbacks) {
+        tui->callbacks = *callbacks;
+    }
 
-    signal(SIGWINCH, tui_main_signal_winch);
+    signal(SIGWINCH, tui_core_signal_winch);
 
     pw_init(&tui->pw_main, 1);
     pw_queue(&tui->pw_main, pw_queue_process_input, tui);
@@ -148,7 +144,7 @@ int tui_main_init(Tui_Main *tui) {
 }
 
 
-void tui_main_handle_resize(Tui_Main *tui) {
+void tui_core_handle_resize(Tui_Core *tui) {
     if(!tui->resized) return;
     
     struct winsize w;
@@ -165,7 +161,9 @@ void tui_main_handle_resize(Tui_Main *tui) {
         return;
     }
 
-    tui->callbacks.resized(tui, dimension, tui->user);
+    if(tui->callbacks.render) {
+        tui->callbacks.resized(tui, dimension, tui->user);
+    }
 
 #if 0
     if(w.ws_xpixel && w.ws_ypixel) {
@@ -182,7 +180,7 @@ void tui_main_handle_resize(Tui_Main *tui) {
 }
 
 
-bool tui_main_loop(Tui_Main *tui) {
+bool tui_core_loop(Tui_Core *tui) {
 
     pthread_mutex_lock(&tui->sync_main.mtx);
     bool update_do = tui->sync_main.update_done < tui->sync_main.update_do;
@@ -190,14 +188,16 @@ bool tui_main_loop(Tui_Main *tui) {
     pthread_mutex_unlock(&tui->sync_main.mtx);
 
     if(update_do) {
-        tui_main_handle_resize(tui);
+        tui_core_handle_resize(tui);
 
         bool render = false;
         tui_input_get_stack(&tui->sync_input, &tui->inputs);
         bool flush = false;
         while(!tui->quit && array_len(tui->inputs)) {
             Tui_Input input = array_pop(tui->inputs);
-            render |= tui->callbacks.input(tui, &input, tui->user);
+            if(tui->callbacks.input) {
+                render |= tui->callbacks.input(tui, &input, tui->user);
+            }
 #if 0
             if(tui->panel_input.visible) {
                 render |= panel_input_input(&tui->panel_input, &tui->sync_main, &input, &flush);
@@ -208,7 +208,9 @@ bool tui_main_loop(Tui_Main *tui) {
             if(flush) continue;
         }
 
-        render |= tui->callbacks.update(tui, tui->user);
+        if(tui->callbacks.update) {
+            render |= tui->callbacks.update(tui, tui->user);
+        }
 
 #if 0
         panel_gaki_update(&tui->sync_panel, &tui->pw_task, &tui->sync_main, &tui->sync_t_file_info, &tui->panel_input, tui->aspect_ratio_cell_xy);
@@ -246,7 +248,9 @@ bool tui_main_loop(Tui_Main *tui) {
 
         tui_buffer_clear(&tui->buffer);
 
-        tui->callbacks.render(tui, &tui->buffer, tui->user);
+        if(tui->callbacks.render) {
+            tui->callbacks.render(tui, &tui->buffer, tui->user);
+        }
 #if 0
         panel_gaki_render(&tui->buffer, &tui->sync_panel);
         panel_input_render(&tui->panel_input, &tui->buffer);
@@ -291,7 +295,7 @@ bool tui_main_loop(Tui_Main *tui) {
     return !tui->quit;
 }
 
-void tui_main_free(Tui_Main *tui) {
+void tui_core_free(Tui_Core *tui) {
 }
 
 
