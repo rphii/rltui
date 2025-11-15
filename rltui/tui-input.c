@@ -89,7 +89,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     }
     if(!iscntrl(input->c[0])) {
         decode->id = INPUT_TEXT;
-        if(so_uc_point(so_ll(input->c, input->bytes), &decode->text)) {
+        if(so_uc_point(so_ll((char *)input->c, input->bytes), &decode->text)) {
             return false;
         }
         //decode->key.down = true;
@@ -105,7 +105,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
         //decode->key.down = true;
         decode->id = INPUT_CODE;
     } else if(input->bytes > 3 && input->c[input->bytes - 1] == 'R') {
-        So in = so_ll(input->c + 2, input->bytes - 3);
+        So in = so_ll((char *)input->c + 2, input->bytes - 3);
         So right, left = so_split_ch(in, ';', &right);
         Tui_Input_Special_Cursor_Position *pos = &decode->special.cursor_position;
         so_as_ssize(left, &pos->point.y, 10);

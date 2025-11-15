@@ -82,7 +82,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
         Tui_Range x_range = scr->x_ranges[pt.y];
         //x_range.i0 = 0;
         //x_range.iE = scr->dimension.x;
-        size_t x_max_prev = x_range_prev.iE >= scr->dimension.x ? scr->dimension.x - 1 : x_range_prev.iE;
+        //size_t x_max_prev = x_range_prev.iE >= scr->dimension.x ? scr->dimension.x - 1 : x_range_prev.iE;
         if(x_range.iE > scr->dimension.x) x_range.iE = scr->dimension.x;
 
         /* maybe goto somewhere */
@@ -96,6 +96,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
             update_cursor = true;
             so_extend(out, so(TUI_ESC_CODE_CURSOR_HIDE));
         }
+        // maybe: clear line if nothing left / text shorter than previously!
         if(!x_range.i0 && x_range.iE && (x_range_prev.i0 || x_range_prev.iE)) {
             if(pt.y - y_prev > 1) {
                 so_fmt(out, "\r\e[%uB", pt.y - y_prev);
