@@ -8,6 +8,7 @@
 #include "rltui/tui-fx.h"
 #include "rltui/tui-global.h"
 #include "rltui/tui-input.h"
+#include "rltui/tui-main.h"
 #include "rltui/tui-point.h"
 #include "rltui/tui-raw.h"
 #include "rltui/tui-rect.h"

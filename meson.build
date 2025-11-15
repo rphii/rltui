@@ -8,6 +8,7 @@ sources = [
   'rltui/tui-fx.c',
   'rltui/tui-global.c',
   'rltui/tui-input.c',
+  'rltui/tui-main.c',
   'rltui/tui-point.c',
   'rltui/tui-raw.c',
   'rltui/tui-rect.c',
@@ -26,6 +27,7 @@ headers = [
   'rltui/tui-fx.h',
   'rltui/tui-global.h',
   'rltui/tui-input.h',
+  'rltui/tui-main.h',
   'rltui/tui-point.h',
   'rltui/tui-range.h',
   'rltui/tui-raw.h',
@@ -39,6 +41,7 @@ headers = [
 
 rlc_dep = dependency('rlc', fallback : ['rlc', 'rlc_dep'], default_options: ['default_library=static'])
 rlso_dep = dependency('rlso', fallback : ['rlso', 'rlso_dep'], default_options: ['default_library=static'])
+rlpw_dep = dependency('rlpw', fallback : ['rlpw', 'rlpw_dep'], default_options: ['default_library=static'])
 rlwcwidth_dep = dependency('rlwcwidth', fallback : ['rlwcwidth', 'rlwcwidth_dep'], default_options: ['default_library=static'])
 
 install_headers(headers, subdir: 'rltui')
@@ -46,7 +49,7 @@ install_headers('rltui.h')
 
 librltui = library('rltui',
   sources,
-  dependencies: [rlc_dep, rlso_dep, rlwcwidth_dep],
+  dependencies: [rlc_dep, rlso_dep, rlpw_dep, rlwcwidth_dep],
   install: true,
   )
 
