@@ -124,11 +124,12 @@ struct Tui_Core *tui_core_new(void) {
     return result;
 }
 
-int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks) {
+int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, void *user) {
     tui_global_set(tui);
     if(callbacks) {
         tui->callbacks = *callbacks;
     }
+    tui->user = user;
 
     signal(SIGWINCH, tui_core_signal_winch);
 

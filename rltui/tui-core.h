@@ -21,7 +21,7 @@ typedef struct Tui_Core_Callbacks {
 } Tui_Core_Callbacks;
 
 struct Tui_Core *tui_core_new(void);
-int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks);
+int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, void *user);
 void tui_core_free(struct Tui_Core *tui);
 bool tui_core_loop(struct Tui_Core *tui);
 
