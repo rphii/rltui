@@ -11,7 +11,7 @@ struct Tui_Core;
 typedef bool (*Tui_Core_Input_Callback)(struct Tui_Core *tui, Tui_Input *input, bool *flush, void *user);
 typedef bool (*Tui_Core_Update_Callback)(struct Tui_Core *tui, void *user);
 typedef void (*Tui_Core_Render_Callback)(struct Tui_Core *tui, Tui_Buffer *buffer, void *user);
-typedef void (*Tui_Core_Resized_Callback)(struct Tui_Core *tui, Tui_Point size, void *user);
+typedef void (*Tui_Core_Resized_Callback)(struct Tui_Core *tui, Tui_Point size, Tui_Point pixels, void *user);
 
 typedef struct Tui_Core_Callbacks {
     Tui_Core_Input_Callback input;
