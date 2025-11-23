@@ -168,13 +168,14 @@ int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync 
     ASSERT_ARG(sync);
 
     tui_global_set(tui);
+    tui->user = user;
+    tui->sync = sync;
+
     if(callbacks) {
         tui->callbacks = *callbacks;
         tui->resized = true;
         tui_core_handle_resize(tui);
     }
-    tui->user = user;
-    tui->sync = sync;
     ++tui->sync->main.update_do;
 
     signal(SIGWINCH, tui_core_signal_winch);
