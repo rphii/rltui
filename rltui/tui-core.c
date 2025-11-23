@@ -123,32 +123,6 @@ struct Tui_Core *tui_core_new(void) {
     return result;
 }
 
-int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync *sync, void *user) {
-    ASSERT_ARG(tui);
-    ASSERT_ARG(sync);
-
-    tui_global_set(tui);
-    if(callbacks) {
-        tui->callbacks = *callbacks;
-    }
-    tui->user = user;
-    tui->sync = sync;
-    tui->sync->main.update_do = true;
-
-    signal(SIGWINCH, tui_core_signal_winch);
-
-    pw_init(&tui->pw_main, 1);
-    pw_queue(&tui->pw_main, pw_queue_process_input, tui);
-    pw_dispatch(&tui->pw_main);
-
-    pw_init(&tui->pw_draw, 1);
-    pw_queue(&tui->pw_draw, pw_queue_render, tui);
-    pw_dispatch(&tui->pw_draw);
-
-    return 0;
-}
-
-
 void tui_core_handle_resize(Tui_Core *tui) {
     if(!tui->resized) return;
     
@@ -187,6 +161,35 @@ void tui_core_handle_resize(Tui_Core *tui) {
     tui_buffer_resize(&tui->buffer, dimension);
     tui_sync_main_render(&tui->sync->main);
 }
+
+
+int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync *sync, void *user) {
+    ASSERT_ARG(tui);
+    ASSERT_ARG(sync);
+
+    tui_global_set(tui);
+    if(callbacks) {
+        tui->callbacks = *callbacks;
+        tui->resized = true;
+        tui_core_handle_resize(tui);
+    }
+    tui->user = user;
+    tui->sync = sync;
+    ++tui->sync->main.update_do;
+
+    signal(SIGWINCH, tui_core_signal_winch);
+
+    pw_init(&tui->pw_main, 1);
+    pw_queue(&tui->pw_main, pw_queue_process_input, tui);
+    pw_dispatch(&tui->pw_main);
+
+    pw_init(&tui->pw_draw, 1);
+    pw_queue(&tui->pw_draw, pw_queue_render, tui);
+    pw_dispatch(&tui->pw_draw);
+
+    return 0;
+}
+
 
 
 bool tui_core_loop(Tui_Core *tui) {
