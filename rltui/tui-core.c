@@ -145,7 +145,7 @@ void tui_core_handle_resize(Tui_Core *tui) {
     }
 
     if(tui->callbacks.render) {
-        tui->callbacks.resized(tui, dimension, pixels, tui->user);
+        tui->callbacks.resized(dimension, pixels, tui->user);
     }
 
 #if 0
@@ -209,13 +209,13 @@ bool tui_core_loop(Tui_Core *tui) {
         if(tui->callbacks.input) {
             while(!tui->quit && array_len(tui->inputs)) {
                 Tui_Input input = array_pop(tui->inputs);
-                render |= tui->callbacks.input(tui, &input, &flush, tui->user);
+                render |= tui->callbacks.input(&input, &flush, tui->user);
                 if(flush) continue;
             }
         }
 
         if(tui->callbacks.update) {
-            render |= tui->callbacks.update(tui, tui->user);
+            render |= tui->callbacks.update(tui->user);
         }
 
         pthread_mutex_lock(&tui->sync->main.mtx);
@@ -250,7 +250,7 @@ bool tui_core_loop(Tui_Core *tui) {
         tui_buffer_clear(&tui->buffer);
 
         if(tui->callbacks.render) {
-            tui->callbacks.render(tui, &tui->buffer, tui->user);
+            tui->callbacks.render(&tui->buffer, tui->user);
         }
 
         pthread_mutex_lock(&tui->sync->main.mtx);
