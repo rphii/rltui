@@ -9,15 +9,15 @@
 
 typedef struct Tui_Core {
     Tui_Sync *sync;
-    Pw pw_main;
-    Pw pw_draw;
-    size_t frames;
+    Tui_Buffer *buffer;
     Tui_Screen screen;
-    Tui_Buffer buffer;
     Tui_Input_Gen input_gen;
     Tui_Inputs inputs;
     Tui_Core_Callbacks callbacks;
-    bool quit;
+    Pw pw_main;
+    Pw pw_draw;
+    size_t frames;
+    _Atomic bool quit;
     _Atomic bool resized;
     void *user;
 } Tui_Core;
@@ -87,7 +87,7 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
         so_clear(&draw);
 
         if(draw_redraw) {
-            memset(tui->screen.old.cells, 0, sizeof(Tui_Cell) * tui->buffer.dimension.x * tui->buffer.dimension.y);
+            memset(tui->screen.old.cells, 0, sizeof(Tui_Cell) * tui->buffer->dimension.x * tui->buffer->dimension.y);
             so_extend(&draw, so(TUI_ESC_CODE_CURSOR_HIDE));
         }
 
@@ -122,7 +122,7 @@ struct Tui_Core *tui_core_new(void) {
     return result;
 }
 
-int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync *sync, void *user) {
+int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Buffer *buffer, Tui_Sync *sync, void *user) {
     ASSERT_ARG(tui);
     ASSERT_ARG(sync);
 
@@ -159,7 +159,7 @@ void tui_core_handle_resize(Tui_Core *tui) {
         .y = w.ws_row,
     };
 
-    Tui_Point dimension_prev = tui->buffer.dimension;
+    Tui_Point dimension_prev = tui->buffer->dimension;
     if(!tui_point_cmp(dimension_prev, dimension)) {
         tui->resized = false;
         return;
@@ -179,7 +179,7 @@ void tui_core_handle_resize(Tui_Core *tui) {
 #endif
 
 
-    tui_buffer_resize(&tui->buffer, dimension);
+    tui_buffer_resize(tui->buffer, dimension);
     tui_sync_main_render(&tui->sync->main);
 }
 
@@ -236,12 +236,12 @@ bool tui_core_loop(Tui_Core *tui) {
 
 
     if(render_do && !draw_busy) {
-        tui->buffer.cursor.id = TUI_CURSOR_NONE;
+        tui->buffer->cursor.id = TUI_CURSOR_NONE;
 
-        tui_buffer_clear(&tui->buffer);
+        tui_buffer_clear(tui->buffer);
 
         if(tui->callbacks.render) {
-            tui->callbacks.render(tui, &tui->buffer, tui->user);
+            tui->callbacks.render(tui, tui->buffer, tui->user);
         }
 
         pthread_mutex_lock(&tui->sync->main.mtx);
@@ -250,11 +250,11 @@ bool tui_core_loop(Tui_Core *tui) {
 
         pthread_mutex_lock(&tui->sync->draw.mtx);
         ++tui->sync->draw.draw_do;
-        if(tui_point_cmp(tui->screen.dimension, tui->buffer.dimension)) {
-            tui_screen_resize(&tui->screen, tui->buffer.dimension);
+        if(tui_point_cmp(tui->screen.dimension, tui->buffer->dimension)) {
+            tui_screen_resize(&tui->screen, tui->buffer->dimension);
         }
-        memcpy(tui->screen.now.cells, tui->buffer.cells, sizeof(Tui_Cell) * tui->buffer.dimension.x * tui->buffer.dimension.y);
-        tui->screen.now.cursor = tui->buffer.cursor;
+        memcpy(tui->screen.now.cells, tui->buffer->cells, sizeof(Tui_Cell) * tui->buffer->dimension.x * tui->buffer->dimension.y);
+        tui->screen.now.cursor = tui->buffer->cursor;
         pthread_cond_signal(&tui->sync->draw.cond);
         pthread_mutex_unlock(&tui->sync->draw.mtx);
 
