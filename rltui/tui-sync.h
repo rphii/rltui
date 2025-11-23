@@ -30,6 +30,12 @@ typedef struct Tui_Sync_Input {
     Tui_Input_Gen gen;
 } Tui_Sync_Input;
 
+typedef struct Tui_Sync {
+    Tui_Sync_Input input;
+    Tui_Sync_Draw draw;
+    Tui_Sync_Main main;
+} Tui_Sync;
+
 void tui_sync_main_update(Tui_Sync_Main *sync);
 void tui_sync_main_render(Tui_Sync_Main *sync);
 void tui_sync_main_both(Tui_Sync_Main *sync);
