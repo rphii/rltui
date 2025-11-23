@@ -4,6 +4,7 @@
 #include "rltui/tui-cell.h"
 #include "rltui/tui-color.h"
 #include "rltui/tui-core.h"
+#include "rltui/tui-cursor.h"
 #include "rltui/tui-die.h"
 #include "rltui/tui-esc-code.h"
 #include "rltui/tui-fx.h"

@@ -23,6 +23,7 @@ headers = [
   'rltui/tui-cell.h',
   'rltui/tui-color.h',
   'rltui/tui-core.h',
+  'rltui/tui-cursor.h',
   'rltui/tui-die.h',
   'rltui/tui-esc-code.h',
   'rltui/tui-fx.h',
