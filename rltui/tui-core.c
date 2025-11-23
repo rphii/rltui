@@ -122,13 +122,17 @@ struct Tui_Core *tui_core_new(void) {
     return result;
 }
 
-int tui_core_init(struct Tui_Core *tui, Tui_Sync *sync, Tui_Core_Callbacks *callbacks, void *user) {
+int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync *sync, void *user) {
+    ASSERT_ARG(tui);
+    ASSERT_ARG(sync);
+
     tui_global_set(tui);
     if(callbacks) {
         tui->callbacks = *callbacks;
     }
     tui->user = user;
     tui->sync = sync;
+    tui->sync->main.update_do = true;
 
     signal(SIGWINCH, tui_core_signal_winch);
 
