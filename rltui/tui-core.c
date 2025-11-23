@@ -20,7 +20,7 @@ typedef struct Tui_Core {
     _Atomic bool quit;
     _Atomic bool resized;
     void *user;
-    So *buf_draw;
+    So buf_draw;
 } Tui_Core;
 
 /* }}} */
@@ -52,7 +52,7 @@ void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
 
 void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
     Tui_Core *tui = void_ctx;
-    So *draw = tui->buf_draw;
+    So *draw = &tui->buf_draw;
 
     while(!*quit) {
 
