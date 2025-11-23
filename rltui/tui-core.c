@@ -297,5 +297,7 @@ void tui_core_free(Tui_Core *tui) {
 
 int tui_core_quit(struct Tui_Core *tui) {
     tui_sync_input_quit(&tui->sync->input);
+    tui->quit = true;
+    return 0;
 }
 
