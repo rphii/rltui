@@ -8,9 +8,7 @@
 /* struct s{{{ */
 
 typedef struct Tui_Core {
-    Tui_Sync_Main sync_main;
-    Tui_Sync_Input sync_input;
-    Tui_Sync_Draw sync_draw;
+    Tui_Sync *sync;
     Pw pw_main;
     Pw pw_draw;
     size_t frames;
@@ -39,13 +37,13 @@ void tui_global_set(Tui_Core *tui) {
 void tui_core_signal_winch(int x) {
     Tui_Core *tui = tui_global_get();
     tui->resized = true;
-    pthread_cond_signal(&tui->sync_main.cond);
+    pthread_cond_signal(&tui->sync->main.cond);
 }
 
 void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
     Tui_Core *tui = void_ctx;
     for(;;) {
-        if(!tui_input_process(&tui->sync_main, &tui->sync_input, &tui->input_gen)) break;
+        if(!tui_input_process(&tui->sync->main, &tui->sync->input, &tui->input_gen)) break;
     }
     return 0;
 }
@@ -57,30 +55,30 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
 
     while(!*quit) {
 
-        pthread_mutex_lock(&tui->sync_draw.mtx);
-        ++tui->sync_draw.draw_done;
-        if(tui->sync_draw.draw_done >= tui->sync_draw.draw_do) {
-            tui->sync_draw.draw_do = 0;
-            tui->sync_draw.draw_done = 0;
+        pthread_mutex_lock(&tui->sync->draw.mtx);
+        ++tui->sync->draw.draw_done;
+        if(tui->sync->draw.draw_done >= tui->sync->draw.draw_do) {
+            tui->sync->draw.draw_do = 0;
+            tui->sync->draw.draw_done = 0;
         }
-        while(!tui->sync_draw.draw_do && !tui->sync_draw.draw_skip) {
-            pthread_cond_wait(&tui->sync_draw.cond, &tui->sync_draw.mtx);
+        while(!tui->sync->draw.draw_do && !tui->sync->draw.draw_skip) {
+            pthread_cond_wait(&tui->sync->draw.cond, &tui->sync->draw.mtx);
         }
-        bool draw_busy = tui->sync_draw.draw_skip;
-        bool draw_do = tui->sync_draw.draw_do;
-        bool draw_redraw = tui->sync_draw.draw_redraw;
-        tui->sync_draw.draw_skip = 0;
+        bool draw_busy = tui->sync->draw.draw_skip;
+        bool draw_do = tui->sync->draw.draw_do;
+        bool draw_redraw = tui->sync->draw.draw_redraw;
+        tui->sync->draw.draw_skip = 0;
         //if(draw_busy && tui->frames > 4) exit(1);
         if(draw_do && !draw_busy && draw_redraw) {
-            tui->sync_draw.draw_redraw = 0;
+            tui->sync->draw.draw_redraw = 0;
         }
-        pthread_mutex_unlock(&tui->sync_draw.mtx);
+        pthread_mutex_unlock(&tui->sync->draw.mtx);
 
         if(draw_busy) {
-            pthread_mutex_lock(&tui->sync_main.mtx);
-            ++tui->sync_main.render_do;
-            pthread_cond_signal(&tui->sync_main.cond);
-            pthread_mutex_unlock(&tui->sync_main.mtx);
+            pthread_mutex_lock(&tui->sync->main.mtx);
+            ++tui->sync->main.render_do;
+            pthread_cond_signal(&tui->sync->main.cond);
+            pthread_mutex_unlock(&tui->sync->main.mtx);
             continue;
         }
 
@@ -124,12 +122,13 @@ struct Tui_Core *tui_core_new(void) {
     return result;
 }
 
-int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, void *user) {
+int tui_core_init(struct Tui_Core *tui, Tui_Sync *sync, Tui_Core_Callbacks *callbacks, void *user) {
     tui_global_set(tui);
     if(callbacks) {
         tui->callbacks = *callbacks;
     }
     tui->user = user;
+    tui->sync = sync;
 
     signal(SIGWINCH, tui_core_signal_winch);
 
@@ -177,71 +176,59 @@ void tui_core_handle_resize(Tui_Core *tui) {
 
 
     tui_buffer_resize(&tui->buffer, dimension);
-    tui_sync_main_render(&tui->sync_main);
+    tui_sync_main_render(&tui->sync->main);
 }
 
 
 bool tui_core_loop(Tui_Core *tui) {
 
-    pthread_mutex_lock(&tui->sync_main.mtx);
-    bool update_do = tui->sync_main.update_done < tui->sync_main.update_do;
+    pthread_mutex_lock(&tui->sync->main.mtx);
+    bool update_do = tui->sync->main.update_done < tui->sync->main.update_do;
     //printff("\rupdate do:%u",update_do);
-    pthread_mutex_unlock(&tui->sync_main.mtx);
+    pthread_mutex_unlock(&tui->sync->main.mtx);
 
     if(update_do) {
         tui_core_handle_resize(tui);
 
         bool render = false;
-        tui_input_get_stack(&tui->sync_input, &tui->inputs);
+        tui_input_get_stack(&tui->sync->input, &tui->inputs);
         bool flush = false;
-        while(!tui->quit && array_len(tui->inputs)) {
-            Tui_Input input = array_pop(tui->inputs);
-            if(tui->callbacks.input) {
-                render |= tui->callbacks.input(tui, &input, tui->user);
+        if(tui->callbacks.input) {
+            while(!tui->quit && array_len(tui->inputs)) {
+                Tui_Input input = array_pop(tui->inputs);
+                render |= tui->callbacks.input(tui, &input, &flush, tui->user);
+                if(flush) continue;
             }
-#if 0
-            if(tui->panel_input.visible) {
-                render |= panel_input_input(&tui->panel_input, &tui->sync_main, &input, &flush);
-            } else {
-                render |= panel_gaki_input(&tui->sync_panel, &tui->pw_task, &tui->sync_main, &tui->sync_t_file_info, &tui->sync_input, &tui->sync_draw, &tui->config, &input, &tui->panel_input, &flush, &tui->quit);
-            }
-#endif
-            if(flush) continue;
         }
 
         if(tui->callbacks.update) {
             render |= tui->callbacks.update(tui, tui->user);
         }
 
-#if 0
-        panel_gaki_update(&tui->sync_panel, &tui->pw_task, &tui->sync_main, &tui->sync_t_file_info, &tui->panel_input, tui->aspect_ratio_cell_xy);
-        panel_input_update(&tui->panel_input);
-#endif
-
-        pthread_mutex_lock(&tui->sync_main.mtx);
-        ++tui->sync_main.update_done;
-        if(render || !tui->frames) ++tui->sync_main.render_do;
-        pthread_mutex_unlock(&tui->sync_main.mtx);
+        pthread_mutex_lock(&tui->sync->main.mtx);
+        ++tui->sync->main.update_done;
+        if(render || !tui->frames) ++tui->sync->main.render_do;
+        pthread_mutex_unlock(&tui->sync->main.mtx);
     }
 
     if(tui->quit) return false;
 
     bool draw_busy = true;
-    pthread_mutex_lock(&tui->sync_draw.mtx);
-    draw_busy = tui->sync_draw.draw_done < tui->sync_draw.draw_do;
+    pthread_mutex_lock(&tui->sync->draw.mtx);
+    draw_busy = tui->sync->draw.draw_done < tui->sync->draw.draw_do;
     //printff("\rdraw busy:%u",draw_busy);
     if(draw_busy) {
-        ++tui->sync_draw.draw_skip;
+        ++tui->sync->draw.draw_skip;
     }
-    pthread_mutex_unlock(&tui->sync_draw.mtx);
+    pthread_mutex_unlock(&tui->sync->draw.mtx);
 
-    pthread_mutex_lock(&tui->sync_main.mtx);
-    bool render_do = tui->sync_main.render_done < tui->sync_main.render_do;
+    pthread_mutex_lock(&tui->sync->main.mtx);
+    bool render_do = tui->sync->main.render_done < tui->sync->main.render_do;
     //printff("\rrender do:%u",render_do);
     if(draw_busy) {
-        tui->sync_main.render_do = tui->sync_main.render_done;
+        tui->sync->main.render_do = tui->sync->main.render_done;
     }
-    pthread_mutex_unlock(&tui->sync_main.mtx);
+    pthread_mutex_unlock(&tui->sync->main.mtx);
 
 
     if(render_do && !draw_busy) {
@@ -252,45 +239,41 @@ bool tui_core_loop(Tui_Core *tui) {
         if(tui->callbacks.render) {
             tui->callbacks.render(tui, &tui->buffer, tui->user);
         }
-#if 0
-        panel_gaki_render(&tui->buffer, &tui->sync_panel);
-        panel_input_render(&tui->panel_input, &tui->buffer);
-#endif
 
-        pthread_mutex_lock(&tui->sync_main.mtx);
-        ++tui->sync_main.render_done;
-        pthread_mutex_unlock(&tui->sync_main.mtx);
+        pthread_mutex_lock(&tui->sync->main.mtx);
+        ++tui->sync->main.render_done;
+        pthread_mutex_unlock(&tui->sync->main.mtx);
 
-        pthread_mutex_lock(&tui->sync_draw.mtx);
-        ++tui->sync_draw.draw_do;
+        pthread_mutex_lock(&tui->sync->draw.mtx);
+        ++tui->sync->draw.draw_do;
         if(tui_point_cmp(tui->screen.dimension, tui->buffer.dimension)) {
             tui_screen_resize(&tui->screen, tui->buffer.dimension);
         }
         memcpy(tui->screen.now.cells, tui->buffer.cells, sizeof(Tui_Cell) * tui->buffer.dimension.x * tui->buffer.dimension.y);
         tui->screen.now.cursor = tui->buffer.cursor;
-        pthread_cond_signal(&tui->sync_draw.cond);
-        pthread_mutex_unlock(&tui->sync_draw.mtx);
+        pthread_cond_signal(&tui->sync->draw.cond);
+        pthread_mutex_unlock(&tui->sync->draw.mtx);
 
     }
 #if 1
-    pthread_mutex_lock(&tui->sync_main.mtx);
-    if(tui->sync_main.render_done >= tui->sync_main.render_do) {
-        tui->sync_main.render_do = 0;
-        tui->sync_main.render_done = 0;
+    pthread_mutex_lock(&tui->sync->main.mtx);
+    if(tui->sync->main.render_done >= tui->sync->main.render_do) {
+        tui->sync->main.render_do = 0;
+        tui->sync->main.render_done = 0;
     }
-    if(tui->sync_main.update_done >= tui->sync_main.update_do) {
-        tui->sync_main.update_do = 0;
-        tui->sync_main.update_done = 0;
+    if(tui->sync->main.update_done >= tui->sync->main.update_do) {
+        tui->sync->main.update_do = 0;
+        tui->sync->main.update_done = 0;
     }
-    while(!tui->sync_main.update_do && !tui->sync_main.render_do) {
+    while(!tui->sync->main.update_do && !tui->sync->main.render_do) {
         if(tui->resized) {
-            tui->sync_main.update_do = true;
+            tui->sync->main.update_do = true;
             break;
         } else {
-            pthread_cond_wait(&tui->sync_main.cond, &tui->sync_main.mtx);
+            pthread_cond_wait(&tui->sync->main.cond, &tui->sync->main.mtx);
         }
     }
-    pthread_mutex_unlock(&tui->sync_main.mtx);
+    pthread_mutex_unlock(&tui->sync->main.mtx);
 #endif
 
     return !tui->quit;
@@ -299,4 +282,7 @@ bool tui_core_loop(Tui_Core *tui) {
 void tui_core_free(Tui_Core *tui) {
 }
 
+int tui_core_quit(struct Tui_Core *tui) {
+    tui_sync_input_quit(&tui->sync->input);
+}
 

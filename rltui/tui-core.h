@@ -8,7 +8,7 @@
 
 struct Tui_Core;
 
-typedef bool (*Tui_Core_Input_Callback)(struct Tui_Core *tui, Tui_Input *input, void *user);
+typedef bool (*Tui_Core_Input_Callback)(struct Tui_Core *tui, Tui_Input *input, bool *flush, void *user);
 typedef bool (*Tui_Core_Update_Callback)(struct Tui_Core *tui, void *user);
 typedef void (*Tui_Core_Render_Callback)(struct Tui_Core *tui, Tui_Buffer *buffer, void *user);
 typedef void (*Tui_Core_Resized_Callback)(struct Tui_Core *tui, Tui_Point size, void *user);
@@ -21,7 +21,8 @@ typedef struct Tui_Core_Callbacks {
 } Tui_Core_Callbacks;
 
 struct Tui_Core *tui_core_new(void);
-int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, void *user);
+int tui_core_init(struct Tui_Core *tui, Tui_Sync *sync, Tui_Core_Callbacks *callbacks, void *user);
+int tui_core_quit(struct Tui_Core *tui);
 void tui_core_free(struct Tui_Core *tui);
 bool tui_core_loop(struct Tui_Core *tui);
 
