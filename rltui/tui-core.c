@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 
-/* struct s{{{ */
+/* structs {{{ */
 
 typedef struct Tui_Core {
     Tui_Sync *sync;
@@ -20,6 +20,7 @@ typedef struct Tui_Core {
     _Atomic bool quit;
     _Atomic bool resized;
     void *user;
+    So *buf_draw;
 } Tui_Core;
 
 /* }}} */
@@ -51,7 +52,7 @@ void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
 
 void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
     Tui_Core *tui = void_ctx;
-    So draw = SO;
+    So *draw = tui->buf_draw;
 
     while(!*quit) {
 
@@ -84,18 +85,18 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
 
         if(!draw_do) continue;
 
-        so_clear(&draw);
+        so_clear(draw);
 
         if(draw_redraw) {
             memset(tui->screen.old.cells, 0, sizeof(Tui_Cell) * tui->buffer.dimension.x * tui->buffer.dimension.y);
-            so_extend(&draw, so(TUI_ESC_CODE_CURSOR_HIDE));
+            so_extend(draw, so(TUI_ESC_CODE_CURSOR_HIDE));
         }
 
-        tui_screen_fmt(&draw, &tui->screen);
+        tui_screen_fmt(draw, &tui->screen);
 
-        ssize_t len = draw.len;
+        ssize_t len = draw->len;
         ssize_t written = 0;
-        char *begin = so_it0(draw);
+        char *begin = so_it0(*draw);
         while(written < len) {
             //break;
             errno = 0;
