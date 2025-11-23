@@ -158,6 +158,10 @@ void tui_core_handle_resize(Tui_Core *tui) {
         .x = w.ws_col,
         .y = w.ws_row,
     };
+    Tui_Point pixels = {
+        .x = w.ws_xpixel,
+        .y = w.ws_ypixel,
+    };
 
     Tui_Point dimension_prev = tui->buffer.dimension;
     if(!tui_point_cmp(dimension_prev, dimension)) {
@@ -166,7 +170,7 @@ void tui_core_handle_resize(Tui_Core *tui) {
     }
 
     if(tui->callbacks.render) {
-        tui->callbacks.resized(tui, dimension, tui->user);
+        tui->callbacks.resized(tui, dimension, pixels, tui->user);
     }
 
 #if 0
