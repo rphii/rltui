@@ -154,6 +154,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
                         mouse_id = MOUSE_WHEEL;
                         mouse_val = num & 0x01 ? 1 : -1;
                     }
+                    decode->shift = (num & 0x04);
                     decode->alt = (num & 0x08);
                     decode->ctrl = (num & 0x10);
                 }
