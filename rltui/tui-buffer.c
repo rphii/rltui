@@ -39,6 +39,7 @@ void tui_buffer_mono(Tui_Buffer *buf, Tui_Color *fg, Tui_Color *bg, Tui_Fx *fx) 
 void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
     ASSERT_ARG(cache);
     Tui_Rect rect = cache->rect;
+    Tui_Point offs = cache->offs;
     Tui_Color *fg = cache->fg;
     Tui_Color *bg = cache->bg;
     Tui_Fx *fx = cache->fx;
@@ -52,7 +53,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
     So_Uc_Point ucp;
     bool first = true;
     //printff("\rHELLO");
-    for(pt.y = rect.anc.y + pt0.y; pt.y < rect.anc.y + rect.dim.y; ++pt.y) {
+    for(pt.y = rect.anc.y + pt0.y + offs.y; pt.y < rect.anc.y + rect.dim.y; ++pt.y) {
 
         if(!first) {
             cache->pt.x = 0;
@@ -61,10 +62,14 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
         first = false;
 
         if(!so_splice(so, &line, '\n') && !fill) break;
+        if(pt.y < rect.anc.y + pt0.y) continue;
+
         size_t nleft_count = 0;
         size_t nleft_width = 0;
         so_clear(&override);
-        for(pt.x = rect.anc.x + pt0.x; (pt.x < rect.anc.x + rect.dim.x) || nleft_width; ++pt.x) {
+        for(pt.x = rect.anc.x + pt0.x + offs.x; (pt.x < rect.anc.x + rect.dim.x) || nleft_width; ++pt.x) {
+
+            bool out_bounds = (pt.x < rect.anc.x + pt0.x);
 
             if(!nleft_count && !nleft_width) {
 
@@ -79,7 +84,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                     }
                 } else {
                     ucp.val = 0;
-                    if(!fill) goto quit;
+                    if(!fill) break;
                 }
 
                 if(ucp.val == '\t') {
@@ -93,6 +98,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                 }
 
                 if(!tui_rect_encloses_point(cnv, pt)) continue;
+                if(out_bounds) continue;
                 Tui_Cell *cell = tui_buffer_at(buf, pt);
 
                 if(cell->nleft) {
@@ -128,7 +134,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
 
             } else {
 
-                if(!tui_rect_encloses_point(cnv, pt)) {
+                if(!tui_rect_encloses_point(cnv, pt) || out_bounds) {
                     nleft_width = 0;
                     nleft_count = 0;
                     continue;
@@ -137,7 +143,8 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                 cell->bg = bg ? *bg : (Tui_Color){0};
                 cell->fg = fg ? *fg : (Tui_Color){0};
                 cell->fx = fx ? *fx : (Tui_Fx){0};
-                cache->pt.x = pt.x;
+                //cache->pt.x += pt.x;
+                ++cache->pt.x;
 
                 cell->nleft = ++nleft_count;
                 if(nleft_count >= nleft_width) {
@@ -157,6 +164,15 @@ quit:; // semicolon to remove warning
 }
 
 void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *bg, Tui_Fx *fx, So so) {
+    Tui_Buffer_Cache tbc = {
+        .fx = fx,
+        .bg = bg,
+        .fg = fg,
+        .fill = true,
+        .rect = rect,
+    };
+    tui_buffer_draw_cache(buf, &tbc, so);
+#if 0
     Tui_Point pt;
     Tui_Rect cnv = { .dim = buf->dimension };
     So line = SO;
@@ -244,6 +260,7 @@ void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *b
 
         }
     }
+#endif
 }
 
 void tui_buffer_draw_subbuf(Tui_Buffer *buf, Tui_Rect rect, Tui_Buffer *sub) {
