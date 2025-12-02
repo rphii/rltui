@@ -6,8 +6,9 @@
 #include "tui-cursor.h"
 
 typedef struct Tui_Buffer_Cache {
-    Tui_Point pt;
-    Tui_Rect rect;
+    Tui_Rect rect;      // destination rectangle
+    Tui_Point offs;     // offset input -> starts at rect (0,0 = rect.x,rect.y) use to e.g. scroll off, without moving destination rectangle
+    Tui_Point pt;       // cached point @ last draw -> starts at origin
     Tui_Color *fg;
     Tui_Color *bg;
     Tui_Fx *fx;
