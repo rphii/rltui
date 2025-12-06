@@ -79,7 +79,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                 if(so_len(*ref)) {
                     if(so_uc_point(*ref, &ucp)) {
                         override = so(TUI_UNKNOWN_CHARACTER_CSTR);
-                        if(so_len(*ref)) so_shift(ref, 3); // 3 bytes for TUI_UNKNOWN_CHARACTER ; TODO .. not hard-code it!
+                        if(so_len(*ref)) so_shift(ref, 1);
                     } else {
                         so_shift(ref, ucp.bytes);
                     }
