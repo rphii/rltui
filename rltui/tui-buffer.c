@@ -1,5 +1,6 @@
-#include "tui-buffer.h"
 #include "rlwcwidth.h"
+#include "tui-buffer.h"
+#include "tui.h"
 
 void tui_buffer_resize(Tui_Buffer *buf, Tui_Point dimension) {
     ASSERT_ARG(buf);
@@ -77,8 +78,8 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
 
                 if(so_len(*ref)) {
                     if(so_uc_point(*ref, &ucp)) {
-                        override = so("?");
-                        if(so_len(*ref)) so_shift(ref, 1);
+                        override = so(TUI_UNKNOWN_CHARACTER_CSTR);
+                        if(so_len(*ref)) so_shift(ref, 3); // 3 bytes for TUI_UNKNOWN_CHARACTER ; TODO .. not hard-code it!
                     } else {
                         so_shift(ref, ucp.bytes);
                     }
@@ -160,7 +161,6 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
         cache->pt.x = 0;
         ++cache->pt.y;
     }
-quit:; // semicolon to remove warning
 }
 
 void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *bg, Tui_Fx *fx, So so) {
@@ -172,95 +172,6 @@ void tui_buffer_draw(Tui_Buffer *buf, Tui_Rect rect, Tui_Color *fg, Tui_Color *b
         .rect = rect,
     };
     tui_buffer_draw_cache(buf, &tbc, so);
-#if 0
-    Tui_Point pt;
-    Tui_Rect cnv = { .dim = buf->dimension };
-    So line = SO;
-    So override = SO;
-    So_Uc_Point ucp;
-    for(pt.y = rect.anc.y; pt.y < rect.anc.y + rect.dim.y; ++pt.y) {
-        if(!so_splice(so, &line, '\n')) break;
-        size_t nleft_count = 0;
-        size_t nleft_width = 0;
-        so_clear(&override);
-        for(pt.x = rect.anc.x; (pt.x < rect.anc.x + rect.dim.x) || nleft_width; ++pt.x) {
-
-            if(!nleft_count && !nleft_width) {
-
-                So *ref = override.len ? &override : &line;
-
-                if(so_len(*ref)) {
-                    if(so_uc_point(*ref, &ucp)) {
-                        override = so("?");
-                        if(so_len(*ref)) so_shift(ref, 1);
-                    } else {
-                        so_shift(ref, ucp.bytes);
-                    }
-                } else {
-                    ucp.val = 0;
-                }
-
-                if(ucp.val == '\t') {
-                    override = so("    ");
-                    --pt.x;
-                    continue;
-                }
-
-                if(ucp.val < ' ' && ucp.val > 0) {
-                    continue;
-                }
-
-                if(!tui_rect_encloses_point(cnv, pt)) continue;
-                Tui_Cell *cell = tui_buffer_at(buf, pt);
-
-                if(cell->nleft) {
-                    for(size_t i = 1; i <= cell->nleft; ++i) {
-                        Tui_Point ptl = { .x = pt.x - i, .y = pt.y };
-                        if(ptl.x < 0) break;
-                        Tui_Cell *cell_l = tui_buffer_at(buf, ptl);
-                        cell_l->ucp.val = 0;
-                        cell_l->width = 0;
-                        cell_l->nleft = 0;
-                    }
-                }
-
-                cell->bg = bg ? *bg : (Tui_Color){0};
-                cell->fg = fg ? *fg : (Tui_Color){0};
-                cell->fx = fx ? *fx : (Tui_Fx){0};
-
-                int w = rlwcwidth(ucp.val);
-                int wbound = w;
-                if(wbound == 1) --wbound;
-                if((wbound + pt.x < rect.anc.x + rect.dim.x) && (wbound + pt.x < buf->dimension.x)) {
-                    cell->ucp = ucp;
-                    cell->width = w;
-                    cell->nleft = 0;
-                } else {
-                    cell->ucp.val = 0;
-                    cell->width = 0;
-                    cell->nleft = 0;
-                }
-
-                nleft_width = cell->width > 1 ? cell->width - 1 : 0;
-
-            } else {
-
-                if(!tui_rect_encloses_point(cnv, pt)) continue;
-                Tui_Cell *cell = tui_buffer_at(buf, pt);
-                cell->bg = bg ? *bg : (Tui_Color){0};
-                cell->fg = fg ? *fg : (Tui_Color){0};
-                cell->fx = fx ? *fx : (Tui_Fx){0};
-
-                cell->nleft = ++nleft_count;
-                if(nleft_count >= nleft_width) {
-                    nleft_count = 0;
-                    nleft_width = 0;
-                }
-            }
-
-        }
-    }
-#endif
 }
 
 void tui_buffer_draw_subbuf(Tui_Buffer *buf, Tui_Rect rect, Tui_Buffer *sub) {
