@@ -209,8 +209,8 @@ bool tui_core_loop(Tui_Core *tui) {
         if(tui->callbacks.input) {
             while(!tui->quit && array_len(tui->inputs)) {
                 Tui_Input input = array_pop(tui->inputs);
-                render |= tui->callbacks.input(&input, &flush, tui->user);
                 if(flush) continue;
+                render |= tui->callbacks.input(&input, &flush, tui->user);
             }
         }
 
