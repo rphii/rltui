@@ -1,4 +1,4 @@
-project('rltui', 'c', meson_version: '>=1.1', version: '0.0.5')
+project('rltui', 'c', meson_version: '>=1.1', version: '0.0.6')
 
 sources = [
   'rltui/tui-buffer.c',
