@@ -170,6 +170,8 @@ int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync 
     pw_queue(&tui->pw_draw, pw_queue_render, tui);
     pw_dispatch(&tui->pw_draw);
 
+    tui_image_is_supported(tui);
+
     return 0;
 }
 
@@ -275,7 +277,6 @@ bool tui_core_loop(Tui_Core *tui) {
 }
 
 void tui_core_free(Tui_Core *tui) {
-    so_free(&tui->input_gen.special.kitty_graphics.tmp);
 }
 
 int tui_core_quit(struct Tui_Core *tui) {

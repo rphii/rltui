@@ -1,15 +1,56 @@
 #include "../rltui.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 struct Tui_Core *core;
 
+int image_ch;
+Tui_Point image_dim;
+So image_raw;
+So tmpbuf;
+Tui_Image *image_tui;
+
 bool input(Tui_Input *input, bool *flush, void *user) {
-    printf("\r\nimage support query...\r\n");
     bool supported = tui_image_is_supported(core);
-    printf("\r\nimage support: %u\r", supported);
+    //usleep(1e2);
+    //printf("image support: %u\r\n", supported);
     if(input->id == INPUT_TEXT) {
         if(input->text.val == 'q') {
             tui_core_quit(core);
             return false;
+        } else if(input->text.val == 'L') {
+            if(!image_tui) {
+
+                FILE *fp = so_file_fp(so("../ctm/assets/gentoo.png"), "r");
+                image_raw.str = (char *)stbi_load_from_file(fp, (int *)&image_dim.x, (int *)&image_dim.y, &image_ch, 0);
+                //printff("data %p %ux%ux%u\r\n",data,image_dim.x,image_dim.y,image_ch);
+
+                image_tui = tui_image_new(core, 10, (uint8_t *)image_raw.str, image_dim, image_ch);
+                int er = tui_image_update(core, image_tui);
+                tui_image_config(image_tui, (Tui_Rect){ .dim = image_dim }, (Tui_Rect){ .dim.x = 10, .dim.y = 5 }, 1);
+                //printf("image load / update err : %u\r\n",er);
+            }
+            return true;
+        } else if(input->text.val == 'l') {
+            ++image_tui->dst.anc.x;
+        } else if(input->text.val == 'j') {
+            ++image_tui->dst.anc.y;
+        } else if(input->text.val == 'k') {
+            --image_tui->dst.anc.y;
+        } else if(input->text.val == 'h') {
+            --image_tui->dst.anc.x;
+        } else if(input->text.val == '+') {
+            ++image_tui->dst.dim.x;
+            ++image_tui->dst.dim.x;
+            ++image_tui->dst.dim.y;
+        } else if(input->text.val == '-') {
+            --image_tui->dst.dim.x;
+            --image_tui->dst.dim.x;
+            --image_tui->dst.dim.y;
+        } else if(input->text.val == 'c') {
+            image_tui = 0;
+            return true;
         }
     }
     return true;
@@ -20,6 +61,13 @@ bool update(void *user) {
 }
 
 void render(Tui_Buffer *buffer, void *user) {
+    if(image_tui) {
+        int er = tui_image_render(core, image_tui, 20);
+        //printf("image display err : %u\r\n",er);
+        //usleep(1e6);
+    } else if(image_raw.str) {
+        int er = tui_image_clear_id_place(core, &tmpbuf, 20);
+    }
 }
 
 void resized(Tui_Point size, Tui_Point pixels, void *user) {

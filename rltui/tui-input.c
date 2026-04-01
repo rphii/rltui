@@ -71,7 +71,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
     Tui_Mouse mouse_prev = decode->mouse;
     decode->id = INPUT_NONE;
 
-#if 0
+#if 1
     if(input->bytes) {
         for(size_t i = 0; i < input->bytes; ++i) {
             printf("%#02x [%c]  ", input->c[i], iscntrl(input->c[i]) ? ' ' : input->c[i]);
@@ -240,15 +240,6 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
     return decode->id != INPUT_NONE;
 }
 
-#if 0
-bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input) {
-    ASSERT_ARG(raw);
-    ASSERT_ARG(input);
-    bool result = tui_input_decode(raw, input, );
-    return result;
-}
-#endif
-
 Tui_Input_State tui_input_state(Tui_Input_State now, Tui_Input_State old) {
     Tui_Input_State result = {0};
     if(now.down > old.down) {
@@ -339,9 +330,9 @@ void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui
 bool tui_input_await_image_data(Tui_Input_Special_Kitty_Graphics *gfx, So data) {
     pthread_mutex_lock(&gfx->mtx);
     gfx->await = true;
-    so_clear(&gfx->tmp);
-    so_fmt(&gfx->tmp, "\e_G%.*s\e\\\e[c", SO_F(data));
-    tui_write_nstr(gfx->tmp.str, gfx->tmp.len);
+    //so_clear(&gfx->tmp);
+    //so_fmt(&gfx->tmp, "\e_G%.*s", SO_F(data));
+    tui_write_nstr(data.str, data.len);
     while(gfx->await) {
         pthread_cond_wait(&gfx->cond, &gfx->mtx);
     }
@@ -350,7 +341,7 @@ bool tui_input_await_image_data(Tui_Input_Special_Kitty_Graphics *gfx, So data) 
 }
 
 bool tui_input_await_image_support(Tui_Input_Special_Kitty_Graphics *gfx) {
-    //tui_write_cstr("\e_Gi=1,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c");
-    return tui_input_await_image_data(gfx, so("i=1,s=1,v=1,a=q,t=d,f=24;AAAA"));
+    /* query action followed by a request for the primary device attributes: \e[c */
+    return tui_input_await_image_data(gfx, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c"));
 }
 
