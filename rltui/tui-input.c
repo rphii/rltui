@@ -56,9 +56,10 @@ int tui_input_get(Tui_Input_Raw *input) {
             while(bytes + 1 < TUI_INPUT_RAW_MAX && tui_input_get_byte(&input->c[++bytes])) {
                 if(input->c[bytes] == 0x1b) {
                     input->c_carry[input->len_carry++] = 0x1b;
-                    if(tui_input_get_byte(&input->c_carry[input->len_carry])) {
+                    if(!tui_input_get_byte(&input->c_carry[input->len_carry])) {
                         ++input->len_carry;
                     }
+                    //printff("len carry %u\r\n",input->len_carry);
                     break;
                 }
             }
