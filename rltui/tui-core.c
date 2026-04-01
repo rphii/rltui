@@ -1,29 +1,11 @@
 #include "tui-core.h"
 #include "tui-esc-code.h"
+#include "tui-image.h"
 #include <errno.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/ioctl.h>
-
-/* structs {{{ */
-
-typedef struct Tui_Core {
-    Tui_Sync *sync;
-    Tui_Buffer buffer;
-    Tui_Screen screen;
-    Tui_Input_Gen input_gen;
-    Tui_Inputs inputs;
-    Tui_Core_Callbacks callbacks;
-    Pw pw_main;
-    Pw pw_draw;
-    size_t frames;
-    _Atomic bool quit;
-    _Atomic bool resized;
-    void *user;
-    So buf_draw;
-} Tui_Core;
-
-/* }}} */
+#include "tui-core-internal.h"
 
 static Tui_Core *g_tui_main;
 
@@ -293,6 +275,7 @@ bool tui_core_loop(Tui_Core *tui) {
 }
 
 void tui_core_free(Tui_Core *tui) {
+    so_free(&tui->input_gen.special.kitty_graphics.tmp);
 }
 
 int tui_core_quit(struct Tui_Core *tui) {
