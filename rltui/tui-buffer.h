@@ -4,6 +4,7 @@
 #include "tui-rect.h"
 #include "tui-point.h"
 #include "tui-cursor.h"
+#include "tui-image.h"
 
 typedef struct Tui_Buffer_Cache {
     Tui_Rect rect;      // destination rectangle

@@ -22,6 +22,7 @@ typedef struct Tui_Core {
     So buf_draw;
     bool is_graphics_support_ok;
     bool is_graphics_support_queried;
+    Tui_Images images;
 } Tui_Core;
 
 /* }}} */

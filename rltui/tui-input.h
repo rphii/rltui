@@ -60,7 +60,7 @@ typedef struct Tui_Input_Special_Kitty_Graphics {
     uint32_t index;
     So message;
     bool ok;
-    So tmp;
+    //So tmp;
 } Tui_Input_Special_Kitty_Graphics;
 
 typedef struct Tui_Input_Special {
@@ -69,6 +69,8 @@ typedef struct Tui_Input_Special {
 } Tui_Input_Special;
 
 typedef struct Tui_Input_Raw {
+    unsigned char next_c;
+    unsigned char next_have;
     unsigned char c[TUI_INPUT_RAW_MAX];
     unsigned char bytes;
     unsigned int next;
