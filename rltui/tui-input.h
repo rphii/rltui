@@ -69,12 +69,12 @@ typedef struct Tui_Input_Special {
 } Tui_Input_Special;
 
 typedef struct Tui_Input_Raw {
-    unsigned char next_c;
-    unsigned char next_have;
     unsigned char c[TUI_INPUT_RAW_MAX];
     unsigned char bytes;
     unsigned int next;
-    bool carry_esc;
+    unsigned char c_carry[TUI_INPUT_RAW_MAX];
+    unsigned char len_carry;
+    //bool carry_esc;
 } Tui_Input_Raw;
 
 typedef struct Tui_Mouse {
