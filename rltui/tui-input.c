@@ -67,9 +67,21 @@ int tui_input_get(Tui_Input_Raw *input) {
     return input->bytes;
 }
 
-bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
+bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special *special) {
     Tui_Mouse mouse_prev = decode->mouse;
     decode->id = INPUT_NONE;
+
+#if 0
+    if(input->bytes) {
+        for(size_t i = 0; i < input->bytes; ++i) {
+            printf("%#02x [%c]  ", input->c[i], iscntrl(input->c[i]) ? ' ' : input->c[i]);
+        }
+        printf("\n\r");
+    }
+#endif
+
+    bool check_kitty_graphics = true;
+
     if(input->bytes == 0) {
         bool changed = false;
 #if 0
@@ -107,7 +119,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
     } else if(input->bytes > 3 && input->c[input->bytes - 1] == 'R') {
         So in = so_ll((char *)input->c + 2, input->bytes - 3);
         So right, left = so_split_ch(in, ';', &right);
-        Tui_Input_Special_Cursor_Position *pos = &decode->special.cursor_position;
+        Tui_Input_Special_Cursor_Position *pos = &special->cursor_position;
         int error = 0;
         error |= so_as_ssize(left, &pos->point.y, 10);
         error |= so_as_ssize(right, &pos->point.x, 10);
@@ -181,17 +193,61 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode) {
             }
             //printff("WHEEL:%i",decode->mouse.scroll);
         }
+    } else if(input->bytes > 3 && input->c[0] == '\x1b' && input->c[1] == '_' && input->c[2] == 'G') {
+        So rem = so_ll(input->c + 3, input->bytes - 3);
+        So status = SO;
+        So so_ieq = so_split_ch(rem, ';', &status);
+        /* split a bunch of things, return message is: <esc>_Gi=31;MESSAGE-OR-OK wher i=31 is a number */
+        bool err = false;
+        uint32_t index = 0;
+        if(!so_cmp0(so_ieq, so("i="))) {
+            So so_i = so_i0(so_ieq, 2);
+            if(so_as_u32(so_i, &index, 10)) {
+                err = true;
+            }
+        } else {
+            err = true;
+        }
+        if(so_cmp(status, so("OK"))) {
+            err = true;
+        }
+        //printf(" KITTY IMAGE PROTOCOL --> %u :: %.*s\r\n", index,SO_F(status));
+
+        Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
+        pthread_mutex_lock(&gfx->mtx);
+        gfx->index = index;
+        gfx->ok = !err;
+        gfx->message = status;
+        gfx->await = false;
+        pthread_cond_signal(&gfx->cond);
+        pthread_mutex_unlock(&gfx->mtx);
+        check_kitty_graphics = false;
     }
+
+    if(check_kitty_graphics) {
+        /* check if kitty graphics is getting queried */
+        Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
+        pthread_mutex_lock(&gfx->mtx);
+        if(gfx->await) {
+            gfx->await = false;
+            gfx->ok = false;
+            gfx->message = so("timed out");
+            pthread_cond_signal(&gfx->cond);
+        }
+        pthread_mutex_unlock(&gfx->mtx);
+    }
+
     return decode->id != INPUT_NONE;
 }
 
-
+#if 0
 bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input) {
     ASSERT_ARG(raw);
     ASSERT_ARG(input);
-    bool result = tui_input_decode(raw, input);
+    bool result = tui_input_decode(raw, input, );
     return result;
 }
+#endif
 
 Tui_Input_State tui_input_state(Tui_Input_State now, Tui_Input_State old) {
     Tui_Input_State result = {0};
@@ -219,7 +275,9 @@ bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Ge
         if(loop) {
             gen->old = process;
         }
-        if(!tui_input_decode(&gen->raw, &process)) break;
+        if(!tui_input_decode(&gen->raw, &process, &gen->special)) {
+            break;
+        }
         Tui_Input input = process;
         gen->now = process;
         //input.alt = tui_input_state(input.alt, gen->old.alt);
@@ -276,5 +334,23 @@ void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui
     }
     pthread_mutex_unlock(&pos->mtx);
     *point = pos->point;
+}
+
+bool tui_input_await_image_data(Tui_Input_Special_Kitty_Graphics *gfx, So data) {
+    pthread_mutex_lock(&gfx->mtx);
+    gfx->await = true;
+    so_clear(&gfx->tmp);
+    so_fmt(&gfx->tmp, "\e_G%.*s\e\\\e[c", SO_F(data));
+    tui_write_nstr(gfx->tmp.str, gfx->tmp.len);
+    while(gfx->await) {
+        pthread_cond_wait(&gfx->cond, &gfx->mtx);
+    }
+    pthread_mutex_unlock(&gfx->mtx);
+    return gfx->ok;
+}
+
+bool tui_input_await_image_support(Tui_Input_Special_Kitty_Graphics *gfx) {
+    //tui_write_cstr("\e_Gi=1,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c");
+    return tui_input_await_image_data(gfx, so("i=1,s=1,v=1,a=q,t=d,f=24;AAAA"));
 }
 
