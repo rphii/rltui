@@ -47,15 +47,11 @@ typedef enum {
 #define TUI_INPUT_RAW_MAX   128
 
 typedef struct Tui_Input_Special_Cursor_Position {
-    pthread_cond_t cond;
-    pthread_mutex_t mtx;
     bool ready;
     Tui_Point point;
 } Tui_Input_Special_Cursor_Position;
 
 typedef struct Tui_Input_Special_Kitty_Graphics {
-    pthread_cond_t cond;
-    pthread_mutex_t mtx;
     bool await;
     uint32_t index;
     So message;
@@ -66,6 +62,9 @@ typedef struct Tui_Input_Special_Kitty_Graphics {
 typedef struct Tui_Input_Special {
     Tui_Input_Special_Cursor_Position cursor_position;
     Tui_Input_Special_Kitty_Graphics kitty_graphics;
+    pthread_mutex_t mtx;
+    pthread_cond_t cond;
+    bool busy;
 } Tui_Input_Special;
 
 typedef struct Tui_Input_Raw {
@@ -104,10 +103,10 @@ typedef struct Tui_Input_Gen {
 bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input);
 bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Gen *gen);
 void tui_input_get_stack(Tui_Sync_Input *sync, Tui_Inputs *inputs);
-void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui_Point *point);
+void tui_input_await_cursor_position(Tui_Input_Special *pos, Tui_Point *point);
 
-bool tui_input_await_image_data(Tui_Input_Special_Kitty_Graphics *gfx, So data);
-bool tui_input_await_image_support(Tui_Input_Special_Kitty_Graphics *gfx);
+bool tui_input_await_image_data(Tui_Input_Special *gfx, So data);
+bool tui_input_await_image_support(Tui_Input_Special *gfx);
 
 #define TUI_INPUT_H
 #endif
