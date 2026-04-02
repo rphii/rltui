@@ -277,6 +277,7 @@ bool tui_core_loop(Tui_Core *tui) {
 }
 
 void tui_core_free(Tui_Core *tui) {
+    array_free(tui->sync->input.inputs);
 }
 
 int tui_core_quit(struct Tui_Core *tui) {
