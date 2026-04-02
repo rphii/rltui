@@ -77,11 +77,12 @@ void tui_image_kitty_gfx_place(Tui_Image *image, uint32_t place_id) {
             image->dst.dim.x, image->dst.dim.y, image->z);
 }
 
-int tui_image_update(struct Tui_Core *core, Tui_Image *image) {
+int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg) {
     int err = 0;
     if(tui_image_is_supported(core)) {
         tui_image_kitty_gfx_send(image);
         err = !tui_input_await_image_data(&core->input_gen.special.kitty_graphics, image->kitty_gfx);
+        if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
 #if 0
         if(err) {
             printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));
