@@ -99,11 +99,12 @@ void tui_image_config(Tui_Image *image, Tui_Rect src, Tui_Rect dst, int32_t z) {
     image->z = z;
 }
 
-int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id) {
+int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id, So *errmsg) {
     int err = 0;
     if(tui_image_is_supported(core)) {
         tui_image_kitty_gfx_place(image, place_id);
         err = !tui_input_await_image_data(&core->input_gen.special.kitty_graphics, image->kitty_gfx);
+        if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
 #if 0
         if(err) {
             printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));

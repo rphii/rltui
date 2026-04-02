@@ -14,7 +14,7 @@ Tui_Image *image_tui;
 bool input(Tui_Input *input, bool *flush, void *user) {
     bool supported = tui_image_is_supported(core);
     //usleep(1e2);
-    //printf("image support: %u\r\n", supported);
+    printf("image support: %u\r\n", supported);
     if(input->id == INPUT_TEXT) {
         if(input->text.val == 'q') {
             tui_core_quit(core);
@@ -29,7 +29,7 @@ bool input(Tui_Input *input, bool *flush, void *user) {
                 image_tui = tui_image_new(core, 10, (uint8_t *)image_raw.str, image_dim, image_ch);
                 int er = tui_image_update(core, image_tui);
                 tui_image_config(image_tui, (Tui_Rect){ .dim = image_dim }, (Tui_Rect){ .dim.x = 10, .dim.y = 5 }, 1);
-                //printf("image load / update err : %u\r\n",er);
+                printf("image load / update err : %u\r\n",er);
             }
             return true;
         } else if(input->text.val == 'l') {
@@ -61,9 +61,10 @@ bool update(void *user) {
 }
 
 void render(Tui_Buffer *buffer, void *user) {
+    So errmsg = SO;
     if(image_tui) {
-        int er = tui_image_render(core, image_tui, 20);
-        //printf("image display err : %u\r\n",er);
+        int er = tui_image_render(core, image_tui, 20, &errmsg);
+        printf("image display err : %u '%.*s'\r\n",er, SO_F(errmsg));
         //usleep(1e6);
     } else if(image_raw.str) {
         int er = tui_image_clear_id_place(core, &tmpbuf, 20);

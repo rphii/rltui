@@ -22,6 +22,24 @@ int tui_input_get_byte(unsigned char *c) {
     return nread;
 }
 
+void tui_input_get_escape_input(Tui_Input_Raw *input) {
+    unsigned char bytes = 1;
+    input->c[bytes] = 0x1c;
+    while(bytes + 1 < TUI_INPUT_RAW_MAX && tui_input_get_byte(&input->c[++bytes])) {
+        if(input->c[bytes] == 0x1b) {
+            input->carry_esc = true;
+            break;
+        }
+#if 0
+        if(input->c[bytes] == '\\') {
+            bytes = 0;
+            break;
+        }
+#endif
+    }
+    input->bytes = bytes;
+}
+
 int tui_input_get(Tui_Input_Raw *input) {
     if(!kbhit()) {
         //usleep(1e1);
@@ -30,18 +48,16 @@ int tui_input_get(Tui_Input_Raw *input) {
     unsigned char c;
     input->bytes = 0;
     int have_c = false;
-    for(unsigned char i = 0; i < input->len_carry; ++i) {
-        input->c[i] = input->c_carry[i];
-        ++input->bytes;
+    if(input->carry_esc) {
+        c = 0x1b;
         have_c = true;
-    }
-    if(!input->len_carry) {
+    } else {
         have_c = tui_input_get_byte(&c);
     }
-    input->len_carry = 0;
+    input->carry_esc = false;
     if(have_c) {
         if(c >= 0xC0) {
-            unsigned char bytes = input->bytes;
+            unsigned char bytes = 0;
             if(c < 0x80) bytes = 1;
             else if((c & 0xE0) == 0xC0) bytes = 2;
             else if((c & 0xF0) == 0xE0) bytes = 3;
@@ -52,24 +68,7 @@ int tui_input_get(Tui_Input_Raw *input) {
             if(bytes > 2) tui_input_get_byte(&input->c[2]);
             if(bytes > 3) tui_input_get_byte(&input->c[3]);
         } else if (c == 0x1b) {
-            unsigned char bytes = input->bytes;
-            input->c[bytes] = c;
-            while(bytes + 1 < TUI_INPUT_RAW_MAX && tui_input_get_byte(&input->c[++bytes])) {
-                if(input->c[bytes] == 0x1b) {
-                    input->c_carry[input->len_carry++] = 0x1b;
-                    int n = 0;
-                    if((n = tui_input_get_byte(&input->c_carry[input->len_carry]))) {
-                        if(input->c_carry[input->len_carry] == '\\') {
-                            input->len_carry = 0;
-                        } else {
-                            ++input->len_carry;
-                        }
-                    }
-                    //printff("len carry %u\r\n",input->len_carry);
-                    break;
-                }
-            }
-            input->bytes = bytes;
+            tui_input_get_escape_input(input);
         } else {
             input->bytes = 1;
             input->c[0] = c;
@@ -82,7 +81,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
     Tui_Mouse mouse_prev = decode->mouse;
     decode->id = INPUT_NONE;
 
-#if 0
+#if 1
     if(input->bytes) {
         for(size_t i = 0; i < input->bytes; ++i) {
             printf("%#02x [%c]  ", input->c[i], iscntrl(input->c[i]) ? ' ' : input->c[i]);
