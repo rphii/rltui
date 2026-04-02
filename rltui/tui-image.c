@@ -17,11 +17,13 @@ bool tui_image_is_supported(struct Tui_Core *core) {
 Tui_Image *tui_image_new(struct Tui_Core *core, uint32_t id, uint8_t *data, Tui_Point dimensions, int channels) {
     Tui_Image *img;
     NEW(Tui_Image, img);
+    pthread_mutex_lock(&core->input_gen.special.mtx);
     array_push(core->images, img);
     img->channels = channels;
     img->data = data;
     img->dimensions = dimensions;
     img->id = id;
+    pthread_mutex_unlock(&core->input_gen.special.mtx);
     return img;
 }
 
