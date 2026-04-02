@@ -103,6 +103,13 @@ void tui_image_config(Tui_Image *image, Tui_Rect src, Tui_Rect dst, int32_t z) {
 int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id, So *errmsg) {
     int err = 0;
     if(tui_image_is_supported(core)) {
+        if(image->dst.anc.x >= core->buffer.dimension.x || image->dst.anc.y >= core->buffer.dimension.y) {
+            return 0;
+        }
+        if(image->dst.dim.x == 0 || image->dst.dim.y == 0) {
+            return 0;
+        }
+        err = 0;
         tui_image_kitty_gfx_place(image, place_id);
         err = !tui_input_await_image_data(&core->input_gen.special, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
