@@ -22,24 +22,6 @@ int tui_input_get_byte(unsigned char *c) {
     return nread;
 }
 
-void tui_input_get_escape_input(Tui_Input_Raw *input) {
-    unsigned char bytes = 1;
-    input->c[bytes] = 0x1c;
-    while(bytes + 1 < TUI_INPUT_RAW_MAX && tui_input_get_byte(&input->c[++bytes])) {
-        if(input->c[bytes] == 0x1b) {
-            input->carry_esc = true;
-            break;
-        }
-#if 0
-        if(input->c[bytes] == '\\') {
-            bytes = 0;
-            break;
-        }
-#endif
-    }
-    input->bytes = bytes;
-}
-
 int tui_input_get(Tui_Input_Raw *input) {
     if(!kbhit()) {
         //usleep(1e1);
@@ -68,7 +50,19 @@ int tui_input_get(Tui_Input_Raw *input) {
             if(bytes > 2) tui_input_get_byte(&input->c[2]);
             if(bytes > 3) tui_input_get_byte(&input->c[3]);
         } else if (c == 0x1b) {
-            tui_input_get_escape_input(input);
+            unsigned char bytes = 0;
+            input->c[bytes] = c;
+            while(bytes + 1 < TUI_INPUT_RAW_MAX && tui_input_get_byte(&input->c[++bytes])) {
+                if(input->c[bytes] == 0x1b) {
+                    input->carry_esc = true;
+                    break;
+                }
+                if(input->c[bytes] == '\\') {
+                    bytes = 0;
+                    break;
+                }
+            }
+            input->bytes = bytes;
         } else {
             input->bytes = 1;
             input->c[0] = c;
@@ -81,7 +75,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
     Tui_Mouse mouse_prev = decode->mouse;
     decode->id = INPUT_NONE;
 
-#if 1
+#if 0
     if(input->bytes) {
         for(size_t i = 0; i < input->bytes; ++i) {
             printf("%#02x [%c]  ", input->c[i], iscntrl(input->c[i]) ? ' ' : input->c[i]);

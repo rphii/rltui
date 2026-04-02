@@ -23,7 +23,7 @@ typedef struct Tui_Image {
 Tui_Image *tui_image_new(struct Tui_Core *core, uint32_t id, uint8_t *data, Tui_Point dimensions, int channels);
 void tui_image_free(struct Tui_Core *core, Tui_Image *image);
 
-int tui_image_update(struct Tui_Core *core, Tui_Image *image);
+int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg);
 
 void tui_image_config(Tui_Image *image, Tui_Rect src, Tui_Rect dst, int32_t z);
 int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id, So *errmsg);
