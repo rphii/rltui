@@ -108,7 +108,7 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
         if(image->dst.anc.x >= core->buffer.dimension.x || image->dst.anc.y >= core->buffer.dimension.y) {
             return 0;
         }
-        if(image->dst.dim.x == 0 || image->dst.dim.y == 0) {
+        if(image->dst.dim.x <= 0 || image->dst.dim.y <= 0) {
             return 0;
         }
         err = 0;
