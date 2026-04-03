@@ -70,13 +70,14 @@ void tui_image_kitty_gfx_send(Tui_Image *image) {
 
 }
 
-void tui_image_kitty_gfx_place(Tui_Image *image, uint32_t place_id) {
+void tui_image_kitty_gfx_place(Tui_Image *image, uint32_t place_id, Tui_Point anc_shift_px, Tui_Point dst_dim, Tui_Point goto_xy) {
     so_clear(&image->kitty_gfx);
-    so_fmt(&image->kitty_gfx, TUI_ESC_CODE_GOTO(image->dst.anc.x, image->dst.anc.y));
+    //anc_shift_px = (Tui_Point){0};
+    so_fmt(&image->kitty_gfx, TUI_ESC_CODE_GOTO(goto_xy.x, goto_xy.y));
     so_fmt(&image->kitty_gfx, KITTY_GFX_BEGIN "a=p,p=%u,i=%u,x=%u,y=%u,w=%u,h=%u,c=%u,r=%u,z=%u,C=1" KITTY_GFX_END,
             place_id, image->id,
-            image->src.anc.x, image->src.anc.y, image->src.dim.x, image->src.dim.y,
-            image->dst.dim.x, image->dst.dim.y, image->z);
+            image->src.anc.x + anc_shift_px.x, image->src.anc.y + anc_shift_px.y, image->src.dim.x - anc_shift_px.x, image->src.dim.y - anc_shift_px.y,
+            dst_dim.x, dst_dim.y, image->z);
 }
 
 int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg) {
@@ -104,6 +105,13 @@ void tui_image_config(Tui_Image *image, Tui_Rect src, Tui_Rect dst, int32_t z) {
 
 int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id, So *errmsg) {
     int err = 0;
+    if(!image) return 0;
+
+    Tui_Point goto_xy = image->dst.anc;
+    Tui_Point dst_dim = image->dst.dim;
+    Tui_Point shift_px = {0};
+    double ratio_y = 0, ratio_x = 0;
+
     if(tui_image_is_supported(core)) {
         if(image->dst.anc.x >= core->buffer.dimension.x || image->dst.anc.y >= core->buffer.dimension.y) {
             tui_image_clear_id_place(core, image->id, place_id);
@@ -113,10 +121,38 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
             tui_image_clear_id_place(core, image->id, place_id);
             return 0;
         }
+
+        /* if going out of bounds, but still can display image, correct offets */
+        if(image->dst.anc.x < 0) {
+            ssize_t n = image->dst.anc.x + image->dst.dim.x;
+            if(n < 0) {
+                tui_image_clear_id_place(core, image->id, place_id);
+                return 0;
+            }
+            ratio_x = (double)image->src.dim.x / (double)image->dst.dim.x;
+            shift_px.x = (dst_dim.x - n) * ratio_x;
+            goto_xy.x = 0;
+            dst_dim.x = n;
+        }
+
+        /* if going out of bounds, but still can display image, correct offets */
+        if(image->dst.anc.y < 0) {
+            ssize_t n = image->dst.anc.y + image->dst.dim.y;
+            if(n < 0) {
+                tui_image_clear_id_place(core, image->id, place_id);
+                return 0;
+            }
+            ratio_y = (double)image->src.dim.y / (double)image->dst.dim.y;
+            shift_px.y = (dst_dim.y - n) * ratio_y;
+            goto_xy.y = 0;
+            dst_dim.y = n;
+        }
+
         err = 0;
-        tui_image_kitty_gfx_place(image, place_id);
+        tui_image_kitty_gfx_place(image, place_id, shift_px, dst_dim, goto_xy);
         err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
+
 #if 0
         if(err) {
             printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));
