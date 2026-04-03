@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <rlso.h>
+#include "tui-core-internal.h"
 
 int kbhit(void) {
     struct timeval tv = { 0L, 0L };
@@ -320,14 +321,15 @@ void tui_input_get_stack(Tui_Sync_Input *sync, Tui_Inputs *inputs) {
     pthread_mutex_unlock(&sync->mtx);
 }
 
-void tui_input_await_cursor_position(Tui_Input_Special *special, Tui_Point *point) {
+void tui_input_await_cursor_position(struct Tui_Core *core, Tui_Point *point) {
 
+    Tui_Input_Special *special = &core->input_gen.special;
     Tui_Input_Special_Cursor_Position *pos = &special->cursor_position;
 
     pthread_mutex_lock(&special->mtx);
     pos->ready = false;
 
-    tui_write_cstr("\e[6n");
+    tui_core_write(core, so("\e[6n"));
 
     while(!pos->ready) {
         pthread_cond_wait(&special->cond, &special->mtx);
@@ -336,14 +338,16 @@ void tui_input_await_cursor_position(Tui_Input_Special *special, Tui_Point *poin
     *point = pos->point;
 }
 
-bool tui_input_await_image_data(Tui_Input_Special *special, So data) {
+bool tui_input_await_image_data(struct Tui_Core *core, So data) {
 
+    Tui_Input_Special *special = &core->input_gen.special;
     Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
 
     pthread_mutex_lock(&special->mtx);
     gfx->await = true;
 
-    tui_write_nstr(data.str, data.len);
+    tui_core_write(core, data);
+    //tui_write_nstr(data.str, data.len);
 
     while(gfx->await) {
         pthread_cond_wait(&special->cond, &special->mtx);
@@ -352,8 +356,8 @@ bool tui_input_await_image_data(Tui_Input_Special *special, So data) {
     return gfx->ok;
 }
 
-bool tui_input_await_image_support(Tui_Input_Special *special) {
+bool tui_input_await_image_support(struct Tui_Core *core) {
     /* query action followed by a request for the primary device attributes: \e[c */
-    return tui_input_await_image_data(special, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c"));
+    return tui_input_await_image_data(core, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c"));
 }
 

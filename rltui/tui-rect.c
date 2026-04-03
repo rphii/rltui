@@ -30,6 +30,21 @@ bool tui_rect_encloses_point(Tui_Rect rect, Tui_Point pt) {
     return false;
 }
 
+bool tui_rect_contains_rect(Tui_Rect rect, Tui_Rect b) {
+    bool result = true;
+    result &= tui_rect_contains_point(rect, (Tui_Point){ .x = b.anc.x, .y = b.anc.y });
+    result &= tui_rect_contains_point(rect, (Tui_Point){ .x = b.anc.x + b.dim.x, .y = b.anc.y + b.dim.y });
+    return result;
+}
+
+bool tui_rect_encloses_rect(Tui_Rect rect, Tui_Rect b) {
+    bool result = true;
+    result &= tui_rect_encloses_point(rect, (Tui_Point){ .x = b.anc.x, .y = b.anc.y });
+    result &= tui_rect_encloses_point(rect, (Tui_Point){ .x = b.anc.x + b.dim.x, .y = b.anc.y + b.dim.y });
+    return result;
+}
+
+
 Tui_Point tui_rect_project_point(Tui_Rect rc, Tui_Point pt) {
     Tui_Point result = pt;
     result.x -= rc.anc.x;

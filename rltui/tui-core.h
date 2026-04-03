@@ -25,6 +25,7 @@ int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync 
 int tui_core_quit(struct Tui_Core *tui);
 void tui_core_free(struct Tui_Core *tui);
 bool tui_core_loop(struct Tui_Core *tui);
+void tui_core_write(struct Tui_Core *tui, So so);
 
 
 #define RLTUI_CORE_H
