@@ -157,6 +157,7 @@ void tui_screen_fmt(So *out, Tui_Screen *scr) {
 #endif
                 //*cell_old = *cell_now; // can actually replace with a memcpy from i0..iE
             cell_prev = cell_curr;
+            //scr->cell_prev = *cell_prev;
         }
 
         if(x_range.i0 < x_range.iE) {
