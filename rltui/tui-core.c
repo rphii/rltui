@@ -82,6 +82,7 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
         while(written < len) {
             //break;
             errno = 0;
+            pthread_mutex_lock(&tui->input_gen.special.mtx);
             ssize_t written_chunk = write(STDOUT_FILENO, begin, len - written);
             if(written_chunk > 0) {
                 written += written_chunk;
@@ -93,6 +94,7 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
                     continue;
                 }
             }
+            pthread_mutex_unlock(&tui->input_gen.special.mtx);
         }
         ++tui->frames;
     }
