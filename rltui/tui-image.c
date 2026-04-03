@@ -8,7 +8,7 @@
 
 bool tui_image_is_supported(struct Tui_Core *core) {
     if(!core->is_graphics_support_queried) {
-        core->is_graphics_support_ok = tui_input_await_image_support(&core->input_gen.special);
+        core->is_graphics_support_ok = tui_input_await_image_support(core);
         core->is_graphics_support_queried = true;
     }
     return core->is_graphics_support_ok;
@@ -83,7 +83,7 @@ int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg) {
     int err = 0;
     if(tui_image_is_supported(core)) {
         tui_image_kitty_gfx_send(image);
-        err = !tui_input_await_image_data(&core->input_gen.special, image->kitty_gfx);
+        err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
 #if 0
         if(err) {
@@ -106,14 +106,16 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
     int err = 0;
     if(tui_image_is_supported(core)) {
         if(image->dst.anc.x >= core->buffer.dimension.x || image->dst.anc.y >= core->buffer.dimension.y) {
+            tui_image_clear_id_place(core, image->id, place_id);
             return 0;
         }
         if(image->dst.dim.x <= 0 || image->dst.dim.y <= 0) {
+            tui_image_clear_id_place(core, image->id, place_id);
             return 0;
         }
         err = 0;
         tui_image_kitty_gfx_place(image, place_id);
-        err = !tui_input_await_image_data(&core->input_gen.special, image->kitty_gfx);
+        err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
 #if 0
         if(err) {
@@ -127,14 +129,15 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
 }
 
 
-int tui_image_clear_id_place(struct Tui_Core *core, So *tmp, uint32_t place_id) {
+int tui_image_clear_id_place(struct Tui_Core *core, uint32_t image_id, uint32_t place_id) {
     ASSERT_ARG(core);
-    ASSERT_ARG(tmp);
     int err = 0;
     if(tui_image_is_supported(core)) {
-        so_clear(tmp);
-        so_fmt(tmp, KITTY_GFX_BEGIN "a=d,i=%u" KITTY_GFX_END, place_id);
-        tui_write_nstr(tmp->str, tmp->len);
+        pthread_mutex_lock(&core->mtx_tmp);
+        so_clear(&core->tmp);
+        so_fmt(&core->tmp, KITTY_GFX_BEGIN "a=d,d=i,i=%u,p=%u" KITTY_GFX_END, image_id, place_id);
+        tui_core_write(core, core->tmp);
+        pthread_mutex_unlock(&core->mtx_tmp);
 #if 0
         if(err) {
             printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));
@@ -146,14 +149,27 @@ int tui_image_clear_id_place(struct Tui_Core *core, So *tmp, uint32_t place_id) 
     return err;
 }
 
-int tui_image_clear_id_image(struct Tui_Core *core, So *tmp, uint32_t place_id) {
+int tui_image_clear_id_image(struct Tui_Core *core, uint32_t image_id) {
     ASSERT_ARG(core);
-    ASSERT_ARG(tmp);
     int err = 0;
     if(tui_image_is_supported(core)) {
-        so_clear(tmp);
-        so_fmt(tmp, KITTY_GFX_BEGIN "a=D,i=%u" KITTY_GFX_END, place_id);
-        tui_write_nstr(tmp->str, tmp->len);
+        pthread_mutex_lock(&core->mtx_tmp);
+        so_clear(&core->tmp);
+        so_fmt(&core->tmp, KITTY_GFX_BEGIN "a=d,d=i,i=%u" KITTY_GFX_END, image_id);
+        tui_core_write(core, core->tmp);
+        pthread_mutex_unlock(&core->mtx_tmp);
+        //err = !tui_input_await_image_data(&core->input_gen.special.kitty_graphics, *tmp);
+    } else {
+        err = -1;
+    }
+    return err;
+}
+
+int tui_image_clear_all(struct Tui_Core *core) {
+    ASSERT_ARG(core);
+    int err = 0;
+    if(tui_image_is_supported(core)) {
+        tui_core_write(core, so("a=d"));
         //err = !tui_input_await_image_data(&core->input_gen.special.kitty_graphics, *tmp);
     } else {
         err = -1;

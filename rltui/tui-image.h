@@ -28,8 +28,8 @@ int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg);
 void tui_image_config(Tui_Image *image, Tui_Rect src, Tui_Rect dst, int32_t z);
 int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id, So *errmsg);
 
-int tui_image_clear_id_place(struct Tui_Core *core, So *tmp, uint32_t place_id);
-int tui_image_clear_id_image(struct Tui_Core *core, So *tmp, uint32_t image_id);
+int tui_image_clear_id_image(struct Tui_Core *core, uint32_t image_id);
+int tui_image_clear_id_place(struct Tui_Core *core, uint32_t image_id, uint32_t place_id);
 
 #define RLTUI_IMAGE_H
 #endif /* RLTUI_IMAGE_H */

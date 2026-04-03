@@ -15,8 +15,15 @@ typedef struct Tui_Rect {
 } Tui_Rect;
 
 int tui_rect_cmp(Tui_Rect a, Tui_Rect b);
+
+/* contains: [ min .. x .. max ] (includes min+max) */
 bool tui_rect_contains_point(Tui_Rect rect, Tui_Point pt);
+bool tui_rect_contains_rect(Tui_Rect rect, Tui_Rect b);
+
+/* encloses: [ min .. x .. max ) (include min, exclude max) */
 bool tui_rect_encloses_point(Tui_Rect rect, Tui_Point pt);
+bool tui_rect_encloses_rect(Tui_Rect rect, Tui_Rect b);
+
 Tui_Point tui_rect_project_point(Tui_Rect rect, Tui_Point pt);
 
 #define TUI_RECT_H

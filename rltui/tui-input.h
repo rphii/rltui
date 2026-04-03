@@ -9,6 +9,7 @@
 
 typedef struct Tui_Sync_Input Tui_Sync_Input;
 typedef struct Tui_Sync_Main Tui_Sync_Main;
+struct Tui_Core;
 
 typedef enum {
     KEY_CODE_NONE,
@@ -103,10 +104,10 @@ typedef struct Tui_Input_Gen {
 bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input);
 bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Gen *gen);
 void tui_input_get_stack(Tui_Sync_Input *sync, Tui_Inputs *inputs);
-void tui_input_await_cursor_position(Tui_Input_Special *pos, Tui_Point *point);
+void tui_input_await_cursor_position(struct Tui_Core *core, Tui_Point *point);
 
-bool tui_input_await_image_data(Tui_Input_Special *gfx, So data);
-bool tui_input_await_image_support(Tui_Input_Special *gfx);
+bool tui_input_await_image_data(struct Tui_Core *core, So data);
+bool tui_input_await_image_support(struct Tui_Core *core);
 
 #define TUI_INPUT_H
 #endif

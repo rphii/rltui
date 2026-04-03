@@ -23,6 +23,9 @@ typedef struct Tui_Core {
     bool is_graphics_support_ok;
     bool is_graphics_support_queried;
     Tui_Images images;
+    pthread_mutex_t mtx_write;
+    pthread_mutex_t mtx_tmp;
+    So tmp;
 } Tui_Core;
 
 /* }}} */

@@ -13,6 +13,29 @@ Tui_Core *tui_global_get(void) {
     return g_tui_main;
 }
 
+void tui_core_write(struct Tui_Core *tui, So so) {
+    ssize_t len = so.len;
+    ssize_t written = 0;
+    char *begin = so_it0(so);
+    while(written < len) {
+        //break;
+        errno = 0;
+        pthread_mutex_lock(&tui->mtx_write);
+        ssize_t written_chunk = write(STDOUT_FILENO, begin, len - written);
+        if(written_chunk > 0) {
+            written += written_chunk;
+            begin += written_chunk;
+        } else {
+            if(errno) {
+                printff("\rerrno on write: %u", errno);exit(1);
+            } else {
+                continue;
+            }
+        }
+        pthread_mutex_unlock(&tui->mtx_write);
+    }
+}
+
 void tui_global_set(Tui_Core *tui) {
     g_tui_main = tui;
 }
@@ -75,27 +98,8 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
         }
 
         tui_screen_fmt(draw, &tui->screen);
+        tui_core_write(tui, *draw);
 
-        ssize_t len = draw->len;
-        ssize_t written = 0;
-        char *begin = so_it0(*draw);
-        while(written < len) {
-            //break;
-            errno = 0;
-            pthread_mutex_lock(&tui->input_gen.special.mtx);
-            ssize_t written_chunk = write(STDOUT_FILENO, begin, len - written);
-            if(written_chunk > 0) {
-                written += written_chunk;
-                begin += written_chunk;
-            } else {
-                if(errno) {
-                    printff("\rerrno on write: %u", errno);exit(1);
-                } else {
-                    continue;
-                }
-            }
-            pthread_mutex_unlock(&tui->input_gen.special.mtx);
-        }
         ++tui->frames;
     }
     return 0;
