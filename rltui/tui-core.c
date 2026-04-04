@@ -199,12 +199,12 @@ bool tui_core_loop(Tui_Core *tui) {
         if(tui->callbacks.input) {
             while(!tui->quit && array_len(tui->inputs)) {
                 Tui_Input input = array_pop(tui->inputs);
-                render |= tui->callbacks.input(&input, &flush, tui->user);
+                update_do |= tui->callbacks.input(&input, &flush, tui->user);
                 if(flush) continue;
             }
         }
 
-        if(tui->callbacks.update) {
+        if(update_do && tui->callbacks.update) {
             render |= tui->callbacks.update(tui->user);
         }
 
