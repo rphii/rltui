@@ -15,6 +15,7 @@ typedef struct Tui_Core {
     Tui_Core_Callbacks callbacks;
     Pw pw_main;
     Pw pw_draw;
+    Pw pw_update;
     size_t frames;
     _Atomic bool quit;
     _Atomic bool resized;
