@@ -21,7 +21,7 @@ typedef struct Tui_Image {
 } Tui_Image, **Tui_Images;
 
 Tui_Image *tui_image_new(struct Tui_Core *core, uint32_t id, uint8_t *data, Tui_Point dimensions, int channels);
-void tui_image_free(struct Tui_Core *core, Tui_Image *image);
+void tui_image_free(Tui_Image *image);
 
 int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg);
 

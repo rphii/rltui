@@ -18,7 +18,6 @@ Tui_Image *tui_image_new(struct Tui_Core *core, uint32_t id, uint8_t *data, Tui_
     Tui_Image *img;
     NEW(Tui_Image, img);
     pthread_mutex_lock(&core->input_gen.special.mtx);
-    array_push(core->images, img);
     img->channels = channels;
     img->data = data;
     img->dimensions = dimensions;
@@ -27,8 +26,10 @@ Tui_Image *tui_image_new(struct Tui_Core *core, uint32_t id, uint8_t *data, Tui_
     return img;
 }
 
-void tui_image_free(struct Tui_Core *core, Tui_Image *image) {
-
+void tui_image_free(Tui_Image *image) {
+    if(!image) return;
+    so_free(&image->kitty_gfx);
+    free(image);
 }
 
 void tui_image_kitty_gfx_send(Tui_Image *image) {

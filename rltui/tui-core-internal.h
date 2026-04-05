@@ -13,9 +13,9 @@ typedef struct Tui_Core {
     Tui_Input_Gen input_gen;
     Tui_Inputs inputs;
     Tui_Core_Callbacks callbacks;
-    Pw pw_main;
+    Pw pw_input;
     Pw pw_draw;
-    Pw pw_unhang;
+    //Pw pw_unhang;
     size_t frames;
     _Atomic bool quit;
     _Atomic bool resized;
@@ -23,7 +23,6 @@ typedef struct Tui_Core {
     So buf_draw;
     bool is_graphics_support_ok;
     bool is_graphics_support_queried;
-    Tui_Images images;
     pthread_mutex_t mtx_write;
     pthread_mutex_t mtx_tmp;
     So tmp;
