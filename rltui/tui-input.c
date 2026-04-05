@@ -72,6 +72,13 @@ int tui_input_get(Tui_Input_Raw *input) {
     return input->bytes;
 }
 
+bool clock_timespec_is_gt(struct timespec *a, struct timespec *b) {
+    bool result = (a->tv_sec > b->tv_sec);
+    if(!result) result = (a->tv_nsec > b->tv_nsec);
+    return result;
+}
+
+
 bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special *special) {
     Tui_Mouse mouse_prev = decode->mouse;
     decode->id = INPUT_NONE;
@@ -207,6 +214,7 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
                 gfx->ok = false;
             }
             gfx->await = false;
+
             //if(gfx->expect_primary_device_attributes.
             pthread_cond_broadcast(&special->cond);
             pthread_mutex_unlock(&special->mtx);
@@ -227,35 +235,25 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
             gfx->skip_primary_device_attributes = gfx->expect_primary_device_attributes;
             gfx->expect_primary_device_attributes = false;
         }
+
         pthread_cond_broadcast(&special->cond);
         pthread_mutex_unlock(&special->mtx);
         check_kitty_graphics = false;
     }
 
-#if 0
-    if(check_kitty_graphics) {
-        /* check if kitty graphics is getting queried */
-        Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
-        pthread_mutex_lock(&special->mtx);
-        if(gfx->await) {
-            gfx->await = false;
-            gfx->ok = false;
-            gfx->message = so("timed out");
-#if 1
-    if(input->bytes) {
-        printf("\e[0m");
-        for(size_t i = 0; i < input->bytes; ++i) {
-            printf("%#02x [%c]  ", input->c[i], iscntrl(input->c[i]) ? ' ' : input->c[i]);
+    if(!pthread_mutex_trylock(&special->mtx)) {
+        if(special->kitty_graphics.await) {
+            struct timespec t;
+            clock_gettime(CLOCK_MONOTONIC, &t);
+            if(clock_timespec_is_gt(&t, &special->kitty_graphics.timeout)) {
+                special->kitty_graphics.ok = false;
+                special->kitty_graphics.message = so("timeout");
+                special->kitty_graphics.await = false;
+                pthread_cond_broadcast(&special->cond);
+            }
         }
-        printf("\n\r");
-    }
-#endif
-
-        }
-        pthread_cond_broadcast(&special->cond);
         pthread_mutex_unlock(&special->mtx);
     }
-#endif
 
     return decode->id != INPUT_NONE;
 }
@@ -353,10 +351,20 @@ void tui_input_await_cursor_position(struct Tui_Core *core, Tui_Point *point) {
     *point = pos->point;
 }
 
+
+void clock_timespec_add_nsec(struct timespec *t, size_t nsec) {
+    size_t np = t->tv_nsec;
+    t->tv_sec += (nsec / 1000000000);
+    t->tv_nsec += nsec;
+    if(t->tv_nsec < np) ++t->tv_sec;
+}
+
 bool tui_input_await_image_data(struct Tui_Core *core, So data) {
 
     Tui_Input_Special *special = &core->input_gen.special;
     Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
+
+    struct timespec t;
 
     pthread_mutex_lock(&special->mtx);
     while(gfx->await) {
@@ -365,9 +373,11 @@ bool tui_input_await_image_data(struct Tui_Core *core, So data) {
 
     gfx->await = true;
 
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    clock_timespec_add_nsec(&t, 1e9);
+    gfx->timeout = t;
+
     tui_core_write(core, data);
-    tui_core_write(core, so("\e[c"));
-    core->input_gen.special.kitty_graphics.expect_primary_device_attributes = true;
     //tui_write_nstr(data.str, data.len);
 
     bool ok = false;
@@ -383,6 +393,7 @@ bool tui_input_await_image_data(struct Tui_Core *core, So data) {
 
 bool tui_input_await_image_support(struct Tui_Core *core) {
     /* query action followed by a request for the primary device attributes: \e[c */
-    return tui_input_await_image_data(core, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\"));
+    core->input_gen.special.kitty_graphics.expect_primary_device_attributes = true;
+    return tui_input_await_image_data(core, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c"));
 }
 

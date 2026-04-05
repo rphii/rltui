@@ -67,7 +67,7 @@ void render(Tui_Buffer *buffer, void *user) {
         //printf("image display err : %u '%.*s'\r\n",er, SO_F(errmsg));
         //usleep(1e6);
     } else if(image_raw.str) {
-        int er = tui_image_clear_id_place(core, &tmpbuf, 20);
+        int er = tui_image_clear_id_place(core, image_tui->id, 20);
     }
 }
 
