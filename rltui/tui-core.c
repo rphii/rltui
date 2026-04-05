@@ -48,7 +48,7 @@ void tui_core_signal_winch(int x) {
 
 void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
     Tui_Core *tui = void_ctx;
-    for(;;) {
+    while(!*quit) {
         if(!tui_input_process(&tui->sync->main, &tui->sync->input, &tui->input_gen)) break;
     }
     return 0;
@@ -69,6 +69,10 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
         }
         while(!tui->sync->draw.draw_do && !tui->sync->draw.draw_skip) {
             pthread_cond_wait(&tui->sync->draw.cond, &tui->sync->draw.mtx);
+            if(tui->quit) {
+                pthread_mutex_unlock(&tui->sync->draw.mtx);
+                goto quit;
+            }
         }
         bool draw_busy = tui->sync->draw.draw_skip;
         bool draw_do = tui->sync->draw.draw_do;
@@ -102,6 +106,8 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
 
         ++tui->frames;
     }
+quit:
+    so_free(draw);
     return 0;
 }
 
@@ -168,15 +174,13 @@ int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync 
 
     signal(SIGWINCH, tui_core_signal_winch);
 
-    pw_init(&tui->pw_main, 1);
-    pw_queue(&tui->pw_main, pw_queue_process_input, tui);
-    pw_dispatch(&tui->pw_main);
+    pw_init(&tui->pw_input, 1);
+    pw_queue(&tui->pw_input, pw_queue_process_input, tui);
+    pw_dispatch(&tui->pw_input);
 
     pw_init(&tui->pw_draw, 1);
     pw_queue(&tui->pw_draw, pw_queue_render, tui);
     pw_dispatch(&tui->pw_draw);
-
-    pw_dispatch(&tui->pw_unhang);
 
     tui_image_is_supported(tui);
 
@@ -285,12 +289,31 @@ bool tui_core_loop(Tui_Core *tui) {
 }
 
 void tui_core_free(Tui_Core *tui) {
+    tui_core_quit(tui);
+    pw_free(&tui->pw_input);
+    pw_free(&tui->pw_draw);
+
+    tui_screen_free(&tui->screen);
+    tui_buffer_free(&tui->buffer);
     array_free(tui->sync->input.inputs);
+
+    array_free(tui->inputs);
+    so_free(&tui->tmp);
+    free(tui);
 }
 
 int tui_core_quit(struct Tui_Core *tui) {
     tui_sync_input_quit(&tui->sync->input);
     tui->quit = true;
+
+    /* we can't do this:
+        tui_sync_main_both(&tui->sync->main);
+     * because we call this in a main() loop, and by the time we're here, 
+     * we have to manually trigger the quitting */
+    pthread_mutex_lock(&tui->sync->draw.mtx);
+    pthread_cond_signal(&tui->sync->draw.cond);
+    pthread_mutex_unlock(&tui->sync->draw.mtx);
+
     return 0;
 }
 
