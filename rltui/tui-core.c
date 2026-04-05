@@ -208,7 +208,6 @@ bool tui_core_loop(Tui_Core *tui) {
                 Tui_Input input = array_pop(tui->inputs);
                 update_do |= tui->callbacks.input(&input, &flush, tui->user);
                 if(flush) continue;
-                render |= tui->callbacks.input(&input, &flush, tui->user);
             }
         }
 
