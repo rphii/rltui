@@ -54,7 +54,8 @@ typedef struct Tui_Input_Special_Cursor_Position {
 
 typedef struct Tui_Input_Special_Kitty_Graphics {
     bool await;
-    uint32_t index;
+    bool expect_primary_device_attributes;
+    bool skip_primary_device_attributes;
     So message;
     bool ok;
     //So tmp;

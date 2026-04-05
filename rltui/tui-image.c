@@ -74,8 +74,8 @@ void tui_image_kitty_gfx_place(Tui_Image *image, uint32_t place_id, Tui_Point an
     so_clear(&image->kitty_gfx);
     //anc_shift_px = (Tui_Point){0};
     so_fmt(&image->kitty_gfx, TUI_ESC_CODE_GOTO(goto_xy.x, goto_xy.y));
-    so_fmt(&image->kitty_gfx, KITTY_GFX_BEGIN "a=p,p=%u,i=%u,x=%u,y=%u,w=%u,h=%u,c=%u,r=%u,z=%u,C=1" KITTY_GFX_END,
-            place_id, image->id,
+    so_fmt(&image->kitty_gfx, KITTY_GFX_BEGIN "a=p,p=%u,i=%u,s=%u,v=%u,x=%u,y=%u,w=%u,h=%u,c=%u,r=%u,z=%u,C=1" KITTY_GFX_END,
+            place_id, image->id, image->dimensions.x, image->dimensions.y,
             image->src.anc.x + anc_shift_px.x, image->src.anc.y + anc_shift_px.y, image->src.dim.x - anc_shift_px.x, image->src.dim.y - anc_shift_px.y,
             dst_dim.x, dst_dim.y, image->z);
 }
@@ -153,12 +153,13 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
         err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
 
-#if 0
+#if 1
         if(err) {
             printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));
         }
 #endif
     } else {
+        //printff("UNSOPPORTED");
         err = -1;
     }
     return err;
