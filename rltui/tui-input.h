@@ -4,6 +4,7 @@
 #include "tui-point.h"
 #include <rlso.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #define TUI_INPUT_MAX   128
 
@@ -57,6 +58,7 @@ typedef struct Tui_Input_Special_Kitty_Graphics {
     bool expect_primary_device_attributes;
     bool skip_primary_device_attributes;
     So message;
+    struct timespec timeout;
     bool ok;
     //So tmp;
 } Tui_Input_Special_Kitty_Graphics;

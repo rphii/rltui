@@ -86,11 +86,6 @@ int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg) {
         tui_image_kitty_gfx_send(image);
         err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
-#if 0
-        if(err) {
-            printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));
-        }
-#endif
     } else {
         err = -1;
     }
@@ -152,12 +147,6 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
         tui_image_kitty_gfx_place(image, place_id, shift_px, dst_dim, goto_xy);
         err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
-
-#if 1
-        if(err) {
-            printf("%.*s\r\n", SO_F(core->input_gen.special.kitty_graphics.message));
-        }
-#endif
     } else {
         //printff("UNSOPPORTED");
         err = -1;

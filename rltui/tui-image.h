@@ -30,6 +30,7 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
 
 int tui_image_clear_id_image(struct Tui_Core *core, uint32_t image_id);
 int tui_image_clear_id_place(struct Tui_Core *core, uint32_t image_id, uint32_t place_id);
+int tui_image_clear_all(struct Tui_Core *core);
 
 #define RLTUI_IMAGE_H
 #endif /* RLTUI_IMAGE_H */
