@@ -20,6 +20,7 @@ typedef struct Tui_Buffer {
     Tui_Cells cells;
     Tui_Point dimension;
     Tui_Cursor cursor;
+    struct Tui_Core *core;
 } Tui_Buffer;
 
 void tui_buffer_resize(Tui_Buffer *buf, Tui_Point dimension);
