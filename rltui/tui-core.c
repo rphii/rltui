@@ -182,6 +182,7 @@ int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync 
     pw_queue(&tui->pw_draw, pw_queue_render, tui);
     pw_dispatch(&tui->pw_draw);
 
+    tui->buffer.core = tui;
     tui_image_is_supported(tui);
 
     return 0;

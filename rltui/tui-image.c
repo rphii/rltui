@@ -81,8 +81,9 @@ void tui_image_kitty_gfx_place(Tui_Image *image, uint32_t place_id, Tui_Point an
             dst_dim.x, dst_dim.y, image->z);
 }
 
-int tui_image_update(struct Tui_Core *core, Tui_Image *image, So *errmsg) {
+int tui_image_update(struct Tui_Buffer *buf, Tui_Image *image, So *errmsg) {
     int err = 0;
+    Tui_Core *core = buf->core;
     if(tui_image_is_supported(core)) {
         tui_image_kitty_gfx_send(image);
         err = !tui_input_await_image_data(core, image->kitty_gfx);
@@ -99,10 +100,11 @@ void tui_image_config(Tui_Image *image, Tui_Rect src, Tui_Rect dst, int32_t z) {
     image->z = z;
 }
 
-int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id, So *errmsg) {
+int tui_image_render(struct Tui_Buffer *buf, Tui_Image *image, uint32_t place_id, So *errmsg) {
     int err = 0;
     if(!image) return 0;
 
+    Tui_Core *core = buf->core;
     Tui_Point goto_xy = image->dst.anc;
     Tui_Point dst_dim = image->dst.dim;
     Tui_Point shift_px = {0};
@@ -110,11 +112,11 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
 
     if(tui_image_is_supported(core)) {
         if(image->dst.anc.x >= core->buffer.dimension.x || image->dst.anc.y >= core->buffer.dimension.y) {
-            tui_image_clear_id_place(core, image->id, place_id);
+            tui_image_clear_id_place(buf, image->id, place_id);
             return 0;
         }
         if(image->dst.dim.x <= 0 || image->dst.dim.y <= 0) {
-            tui_image_clear_id_place(core, image->id, place_id);
+            tui_image_clear_id_place(buf, image->id, place_id);
             return 0;
         }
 
@@ -122,7 +124,7 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
         if(image->dst.anc.x < 0) {
             ssize_t n = image->dst.anc.x + image->dst.dim.x;
             if(n < 0) {
-                tui_image_clear_id_place(core, image->id, place_id);
+                tui_image_clear_id_place(buf, image->id, place_id);
                 return 0;
             }
             ratio_x = (double)image->src.dim.x / (double)image->dst.dim.x;
@@ -135,7 +137,7 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
         if(image->dst.anc.y < 0) {
             ssize_t n = image->dst.anc.y + image->dst.dim.y;
             if(n < 0) {
-                tui_image_clear_id_place(core, image->id, place_id);
+                tui_image_clear_id_place(buf, image->id, place_id);
                 return 0;
             }
             ratio_y = (double)image->src.dim.y / (double)image->dst.dim.y;
@@ -156,8 +158,9 @@ int tui_image_render(struct Tui_Core *core, Tui_Image *image, uint32_t place_id,
 }
 
 
-int tui_image_clear_id_place(struct Tui_Core *core, uint32_t image_id, uint32_t place_id) {
-    ASSERT_ARG(core);
+int tui_image_clear_id_place(struct Tui_Buffer *buf, uint32_t image_id, uint32_t place_id) {
+    ASSERT_ARG(buf);
+    Tui_Core *core = buf->core;
     int err = 0;
     if(tui_image_is_supported(core)) {
         pthread_mutex_lock(&core->mtx_tmp);
@@ -176,8 +179,9 @@ int tui_image_clear_id_place(struct Tui_Core *core, uint32_t image_id, uint32_t 
     return err;
 }
 
-int tui_image_clear_id_image(struct Tui_Core *core, uint32_t image_id) {
-    ASSERT_ARG(core);
+int tui_image_clear_id_image(struct Tui_Buffer *buf, uint32_t image_id) {
+    ASSERT_ARG(buf);
+    Tui_Core *core = buf->core;
     int err = 0;
     if(tui_image_is_supported(core)) {
         pthread_mutex_lock(&core->mtx_tmp);
@@ -192,8 +196,9 @@ int tui_image_clear_id_image(struct Tui_Core *core, uint32_t image_id) {
     return err;
 }
 
-int tui_image_clear_all(struct Tui_Core *core) {
-    ASSERT_ARG(core);
+int tui_image_clear_all(struct Tui_Buffer *buf) {
+    ASSERT_ARG(buf);
+    Tui_Core *core = buf->core;
     int err = 0;
     if(tui_image_is_supported(core)) {
         tui_core_write(core, so("a=d"));
