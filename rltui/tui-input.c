@@ -197,38 +197,42 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
                 input->next = iE + 1 + in_offs;
             }
             //printff("WHEEL:%i",decode->mouse.scroll);
+        } else if(so_at(in, 0) == '?' && len >= 2) {
+            Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
+            pthread_mutex_lock(&special->mtx);
+            if(gfx->skip_primary_device_attributes) {
+                gfx->skip_primary_device_attributes = false;
+                check_kitty_graphics = false;
+            } else {
+                gfx->ok = false;
+            }
+            gfx->await = false;
+            //if(gfx->expect_primary_device_attributes.
+            pthread_cond_broadcast(&special->cond);
+            pthread_mutex_unlock(&special->mtx);
         }
     } else if(input->bytes > 3 && input->c[0] == '\x1b' && input->c[1] == '_' && input->c[2] == 'G') {
         So rem = so_ll(input->c + 3, input->bytes - 3);
         So status = SO;
-        So so_ieq = so_split_ch(rem, ';', &status);
-        /* split a bunch of things, return message is: <esc>_Gi=31;MESSAGE-OR-OK wher i=31 is a number */
-        bool err = false;
-        uint32_t index = 0;
-        if(!so_cmp0(so_ieq, so("i="))) {
-            So so_i = so_i0(so_ieq, 2);
-            if(so_as_u32(so_i, &index, 10)) {
-                err = true;
-            }
-        } else {
-            err = true;
-        }
-        if(so_cmp(status, so("OK"))) {
-            err = true;
-        }
+        so_split_ch(rem, ';', &status);
+        bool err = so_cmp(status, so("OK"));
         //printf(" KITTY IMAGE PROTOCOL --> %u :: %.*s\r\n", index,SO_F(status));
 
         Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
         pthread_mutex_lock(&special->mtx);
-        gfx->index = index;
-        gfx->ok = !err;
-        gfx->message = status;
-        gfx->await = false;
-        pthread_cond_signal(&special->cond);
+        if(gfx->await) {
+            gfx->ok = !err;
+            gfx->message = rem;
+            gfx->await = false;
+            gfx->skip_primary_device_attributes = gfx->expect_primary_device_attributes;
+            gfx->expect_primary_device_attributes = false;
+        }
+        pthread_cond_broadcast(&special->cond);
         pthread_mutex_unlock(&special->mtx);
         check_kitty_graphics = false;
     }
 
+#if 0
     if(check_kitty_graphics) {
         /* check if kitty graphics is getting queried */
         Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
@@ -237,10 +241,21 @@ bool tui_input_decode(Tui_Input_Raw *input, Tui_Input *decode, Tui_Input_Special
             gfx->await = false;
             gfx->ok = false;
             gfx->message = so("timed out");
-            pthread_cond_signal(&special->cond);
+#if 1
+    if(input->bytes) {
+        printf("\e[0m");
+        for(size_t i = 0; i < input->bytes; ++i) {
+            printf("%#02x [%c]  ", input->c[i], iscntrl(input->c[i]) ? ' ' : input->c[i]);
         }
+        printf("\n\r");
+    }
+#endif
+
+        }
+        pthread_cond_broadcast(&special->cond);
         pthread_mutex_unlock(&special->mtx);
     }
+#endif
 
     return decode->id != INPUT_NONE;
 }
@@ -344,20 +359,30 @@ bool tui_input_await_image_data(struct Tui_Core *core, So data) {
     Tui_Input_Special_Kitty_Graphics *gfx = &special->kitty_graphics;
 
     pthread_mutex_lock(&special->mtx);
-    gfx->await = true;
-
-    tui_core_write(core, data);
-    //tui_write_nstr(data.str, data.len);
-
     while(gfx->await) {
         pthread_cond_wait(&special->cond, &special->mtx);
     }
+
+    gfx->await = true;
+
+    tui_core_write(core, data);
+    tui_core_write(core, so("\e[c"));
+    core->input_gen.special.kitty_graphics.expect_primary_device_attributes = true;
+    //tui_write_nstr(data.str, data.len);
+
+    bool ok = false;
+    while(gfx->await) {
+        pthread_cond_wait(&special->cond, &special->mtx);
+    }
+
+    ok = gfx->ok;
     pthread_mutex_unlock(&special->mtx);
-    return gfx->ok;
+
+    return ok;
 }
 
 bool tui_input_await_image_support(struct Tui_Core *core) {
     /* query action followed by a request for the primary device attributes: \e[c */
-    return tui_input_await_image_data(core, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\\e[c"));
+    return tui_input_await_image_data(core, so("\e_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\e\\"));
 }
 
