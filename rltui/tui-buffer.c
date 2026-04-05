@@ -121,7 +121,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                 cache->pt.x += w;
                 int wbound = w;
                 if(wbound == 1) --wbound;
-                if((wbound + pt.x < rect.anc.x + rect.dim.x) && (wbound + pt.x < buf->dimension.x)) {
+                if((wbound + pt.x <= rect.anc.x + rect.dim.x) && (wbound + pt.x <= buf->dimension.x)) {
                     cell->ucp = ucp;
                     cell->width = w;
                     cell->nleft = 0;
