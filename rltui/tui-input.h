@@ -4,11 +4,13 @@
 #include "tui-point.h"
 #include <rlso.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #define TUI_INPUT_MAX   128
 
 typedef struct Tui_Sync_Input Tui_Sync_Input;
 typedef struct Tui_Sync_Main Tui_Sync_Main;
+struct Tui_Core;
 
 typedef enum {
     KEY_CODE_NONE,
@@ -47,14 +49,26 @@ typedef enum {
 #define TUI_INPUT_RAW_MAX   128
 
 typedef struct Tui_Input_Special_Cursor_Position {
-    pthread_cond_t cond;
-    pthread_mutex_t mtx;
     bool ready;
     Tui_Point point;
 } Tui_Input_Special_Cursor_Position;
 
+typedef struct Tui_Input_Special_Kitty_Graphics {
+    bool await;
+    bool expect_primary_device_attributes;
+    bool skip_primary_device_attributes;
+    So message;
+    struct timespec timeout;
+    bool ok;
+    //So tmp;
+} Tui_Input_Special_Kitty_Graphics;
+
 typedef struct Tui_Input_Special {
     Tui_Input_Special_Cursor_Position cursor_position;
+    Tui_Input_Special_Kitty_Graphics kitty_graphics;
+    pthread_mutex_t mtx;
+    pthread_cond_t cond;
+    bool busy;
 } Tui_Input_Special;
 
 typedef struct Tui_Input_Raw {
@@ -73,7 +87,6 @@ typedef struct Tui_Mouse {
 } Tui_Mouse;
 
 typedef struct Tui_Input {
-    Tui_Input_Special special;
     Tui_Input_List id;
     Tui_Key_Code_List code;
     Tui_Mouse mouse;
@@ -88,12 +101,16 @@ typedef struct Tui_Input_Gen {
     Tui_Input now;
     Tui_Input old;
     Tui_Input_Raw raw;
+    Tui_Input_Special special;
 } Tui_Input_Gen;
 
 bool tui_input_process_raw(Tui_Input_Raw *raw, Tui_Input *input);
 bool tui_input_process(Tui_Sync_Main *sync_m, Tui_Sync_Input *sync, Tui_Input_Gen *gen);
 void tui_input_get_stack(Tui_Sync_Input *sync, Tui_Inputs *inputs);
-void tui_input_await_cursor_position(Tui_Input_Special_Cursor_Position *pos, Tui_Point *point);
+void tui_input_await_cursor_position(struct Tui_Core *core, Tui_Point *point);
+
+bool tui_input_await_image_data(struct Tui_Core *core, So data);
+bool tui_input_await_image_support(struct Tui_Core *core);
 
 #define TUI_INPUT_H
 #endif

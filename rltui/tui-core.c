@@ -1,34 +1,39 @@
 #include "tui-core.h"
 #include "tui-esc-code.h"
+#include "tui-image.h"
 #include <errno.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/ioctl.h>
-
-/* structs {{{ */
-
-typedef struct Tui_Core {
-    Tui_Sync *sync;
-    Tui_Buffer buffer;
-    Tui_Screen screen;
-    Tui_Input_Gen input_gen;
-    Tui_Inputs inputs;
-    Tui_Core_Callbacks callbacks;
-    Pw pw_main;
-    Pw pw_draw;
-    size_t frames;
-    _Atomic bool quit;
-    _Atomic bool resized;
-    void *user;
-    So buf_draw;
-} Tui_Core;
-
-/* }}} */
+#include "tui-core-internal.h"
 
 static Tui_Core *g_tui_main;
 
 Tui_Core *tui_global_get(void) {
     return g_tui_main;
+}
+
+void tui_core_write(struct Tui_Core *tui, So so) {
+    ssize_t len = so.len;
+    ssize_t written = 0;
+    char *begin = so_it0(so);
+    while(written < len) {
+        //break;
+        errno = 0;
+        pthread_mutex_lock(&tui->mtx_write);
+        ssize_t written_chunk = write(STDOUT_FILENO, begin, len - written);
+        if(written_chunk > 0) {
+            written += written_chunk;
+            begin += written_chunk;
+        } else {
+            if(errno) {
+                printff("\rerrno on write: %u", errno);exit(1);
+            } else {
+                continue;
+            }
+        }
+        pthread_mutex_unlock(&tui->mtx_write);
+    }
 }
 
 void tui_global_set(Tui_Core *tui) {
@@ -43,7 +48,7 @@ void tui_core_signal_winch(int x) {
 
 void *pw_queue_process_input(Pw *pw, bool *quit, void *void_ctx) {
     Tui_Core *tui = void_ctx;
-    for(;;) {
+    while(!*quit) {
         if(!tui_input_process(&tui->sync->main, &tui->sync->input, &tui->input_gen)) break;
     }
     return 0;
@@ -64,6 +69,10 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
         }
         while(!tui->sync->draw.draw_do && !tui->sync->draw.draw_skip) {
             pthread_cond_wait(&tui->sync->draw.cond, &tui->sync->draw.mtx);
+            if(tui->quit) {
+                pthread_mutex_unlock(&tui->sync->draw.mtx);
+                goto quit;
+            }
         }
         bool draw_busy = tui->sync->draw.draw_skip;
         bool draw_do = tui->sync->draw.draw_do;
@@ -93,27 +102,12 @@ void *pw_queue_render(Pw *pw, bool *quit, void *void_ctx) {
         }
 
         tui_screen_fmt(draw, &tui->screen);
+        tui_core_write(tui, *draw);
 
-        ssize_t len = draw->len;
-        ssize_t written = 0;
-        char *begin = so_it0(*draw);
-        while(written < len) {
-            //break;
-            errno = 0;
-            ssize_t written_chunk = write(STDOUT_FILENO, begin, len - written);
-            if(written_chunk > 0) {
-                written += written_chunk;
-                begin += written_chunk;
-            } else {
-                if(errno) {
-                    printff("\rerrno on write: %u", errno);exit(1);
-                } else {
-                    continue;
-                }
-            }
-        }
         ++tui->frames;
     }
+quit:
+    so_free(draw);
     return 0;
 }
 
@@ -180,13 +174,16 @@ int tui_core_init(struct Tui_Core *tui, Tui_Core_Callbacks *callbacks, Tui_Sync 
 
     signal(SIGWINCH, tui_core_signal_winch);
 
-    pw_init(&tui->pw_main, 1);
-    pw_queue(&tui->pw_main, pw_queue_process_input, tui);
-    pw_dispatch(&tui->pw_main);
+    pw_init(&tui->pw_input, 1);
+    pw_queue(&tui->pw_input, pw_queue_process_input, tui);
+    pw_dispatch(&tui->pw_input);
 
     pw_init(&tui->pw_draw, 1);
     pw_queue(&tui->pw_draw, pw_queue_render, tui);
     pw_dispatch(&tui->pw_draw);
+
+    tui->buffer.core = tui;
+    tui_image_is_supported(tui);
 
     return 0;
 }
@@ -209,12 +206,16 @@ bool tui_core_loop(Tui_Core *tui) {
         if(tui->callbacks.input) {
             while(!tui->quit && array_len(tui->inputs)) {
                 Tui_Input input = array_pop(tui->inputs);
+<<<<<<< HEAD
+=======
+                update_do |= tui->callbacks.input(&input, &flush, tui->user);
+>>>>>>> v0.0.7
                 if(flush) continue;
                 render |= tui->callbacks.input(&input, &flush, tui->user);
             }
         }
 
-        if(tui->callbacks.update) {
+        if(update_do && tui->callbacks.update) {
             render |= tui->callbacks.update(tui->user);
         }
 
@@ -293,11 +294,31 @@ bool tui_core_loop(Tui_Core *tui) {
 }
 
 void tui_core_free(Tui_Core *tui) {
+    tui_core_quit(tui);
+    pw_free(&tui->pw_input);
+    pw_free(&tui->pw_draw);
+
+    tui_screen_free(&tui->screen);
+    tui_buffer_free(&tui->buffer);
+    array_free(tui->sync->input.inputs);
+
+    array_free(tui->inputs);
+    so_free(&tui->tmp);
+    free(tui);
 }
 
 int tui_core_quit(struct Tui_Core *tui) {
     tui_sync_input_quit(&tui->sync->input);
     tui->quit = true;
+
+    /* we can't do this:
+        tui_sync_main_both(&tui->sync->main);
+     * because we call this in a main() loop, and by the time we're here, 
+     * we have to manually trigger the quitting */
+    pthread_mutex_lock(&tui->sync->draw.mtx);
+    pthread_cond_signal(&tui->sync->draw.cond);
+    pthread_mutex_unlock(&tui->sync->draw.mtx);
+
     return 0;
 }
 

@@ -9,6 +9,7 @@
 #include "rltui/tui-esc-code.h"
 #include "rltui/tui-fx.h"
 #include "rltui/tui-global.h"
+#include "rltui/tui-image.h"
 #include "rltui/tui-input.h"
 #include "rltui/tui-point.h"
 #include "rltui/tui-raw.h"

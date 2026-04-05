@@ -43,8 +43,13 @@ void tui_cell_colordiff_fmt(So *out, Tui_Cell *a, Tui_Cell *b) {
         do_fg = a->fg;
         do_bg = a->bg;
         do_fx = a->fx;
+#if TODO_OPTIMIZE_THIS
         if(!do_fg.type) reset_fg = true;
-        if(!do_fg.type) reset_bg = true;
+        if(!do_bg.type) reset_bg = true;
+#else
+        reset_fg = true;
+        reset_bg = true;
+#endif
     }
     /* check if we do anything */
     if(reset_fg || reset_bg || do_fg.type || do_bg.type ||
