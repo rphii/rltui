@@ -245,7 +245,7 @@ int main(void) {
 
     while(!st.quit) {
         if(!st.render.all && tui_input_process(&input)) {
-            //printff("INPUT ID %u",input.id);
+            printff("INPUT ID %u",input.id);
             if(input.id == INPUT_TEXT && input.text.len == 1) {
                 switch(input.text.str[0]) {
                     case 'q': st.quit = true; break;

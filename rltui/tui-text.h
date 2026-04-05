@@ -5,6 +5,7 @@
 typedef struct Tui_Text_Line {
     So so;
     size_t visual_len;
+    size_t num_char;
 } Tui_Text_Line;
 
 void tui_text_line_clear(Tui_Text_Line *tx);

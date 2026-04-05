@@ -4,6 +4,7 @@
 #include "tui-rect.h"
 #include "tui-point.h"
 #include "tui-cursor.h"
+#include "tui-image.h"
 
 typedef struct Tui_Buffer_Cache {
     Tui_Rect rect;      // destination rectangle
@@ -19,6 +20,7 @@ typedef struct Tui_Buffer {
     Tui_Cells cells;
     Tui_Point dimension;
     Tui_Cursor cursor;
+    struct Tui_Core *core;
 } Tui_Buffer;
 
 void tui_buffer_resize(Tui_Buffer *buf, Tui_Point dimension);
