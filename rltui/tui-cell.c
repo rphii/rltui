@@ -56,7 +56,7 @@ void tui_cell_colordiff_fmt(So *out, Tui_Cell *a, Tui_Cell *b) {
             do_fx.bold || do_fx.it || do_fx.ul ||
             reset_fx.bold || reset_fx.it || reset_fx.ul) {
         any = true;
-        so_extend(out, so("\e[0"));
+        so_extend(out, so("\e["));
     }
     /* check reset */
     if(reset_fg && reset_bg) {
