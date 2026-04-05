@@ -32,6 +32,7 @@ void tui_text_line_push(Tui_Text_Line *tx, So_Uc_Point ucp) {
             so_extend(&tx->so, so(TUI_UNKNOWN_CHARACTER_CSTR));
             tx->visual_len += rlwcwidth(TUI_UNKNOWN_CHARACTER_POINT);
         }
+        tx->num_char += 1;
     }
 }
 
@@ -47,6 +48,7 @@ So_Uc_Point tui_text_line_pop(Tui_Text_Line *tx) {
         so_uc_point(so_i0(tx->so, i), &result);
         tx->so = so_iE(tx->so, i);
         tx->visual_len -= rlwcwidth(result.val);
+        tx->num_char -= 1;
     }
     return result;
 }
