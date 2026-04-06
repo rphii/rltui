@@ -65,6 +65,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
         if(!so_splice(so, &line, '\n') && !fill) break;
         if(pt.y < rect.anc.y + pt0.y) continue;
 
+        int w_last = 0;
         size_t nleft_count = 0;
         size_t nleft_width = 0;
         so_clear(&override);
@@ -94,7 +95,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                     continue;
                 }
 
-                if(ucp.val < ' ' && ucp.val > 0) {
+                if((ucp.val < ' ' && ucp.val > 0) || ucp.val == 127) {
                     continue;
                 }
 
@@ -118,6 +119,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                 cell->fx = fx ? *fx : (Tui_Fx){0};
 
                 int w = rlwcwidth(ucp.val);
+                w_last = cell->width;
                 cache->pt.x += w;
                 int wbound = w;
                 if(wbound == 1) --wbound;
@@ -154,6 +156,17 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                 }
             }
 
+        }
+
+        /* if old cell w > 1 and pt.x >= anc.x + dim.x ? -> draw w-1 more cells */
+        if(w_last > 1 && pt.x >= rect.anc.x + rect.dim.x) {
+            for(int w_post = 1; w_post < w_last; ++w_post, ++pt.x) {
+                if(!tui_rect_encloses_point(cnv, pt)) break;
+                Tui_Cell *cell = tui_buffer_at(buf, pt);
+                cell->ucp.val = 0;
+                cell->width = 0;
+                cell->nleft = 0;
+            }
         }
 
     }
