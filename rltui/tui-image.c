@@ -3,6 +3,9 @@
 #include "tui-core-internal.h"
 #include "tui-write.h"
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb/stb_image_resize2.h>
+
 #define KITTY_GFX_BEGIN     "\e_G"
 #define KITTY_GFX_END       "\e\\"
 
@@ -84,12 +87,12 @@ void tui_image_kitty_gfx_place(Tui_Image *image, uint32_t place_id, Tui_Point an
 int tui_image_update(struct Tui_Buffer *buf, Tui_Image *image, So *errmsg) {
     int err = 0;
     Tui_Core *core = buf->core;
-    if(tui_image_is_supported(core)) {
+    if(tui_image_is_supported(core) && false) {
         tui_image_kitty_gfx_send(image);
         err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
     } else {
-        err = -1;
+        //err = -1;
     }
     return err;
 }
@@ -110,7 +113,7 @@ int tui_image_render(struct Tui_Buffer *buf, Tui_Image *image, uint32_t place_id
     Tui_Point shift_px = {0};
     double ratio_y = 0, ratio_x = 0;
 
-    if(tui_image_is_supported(core)) {
+    if(tui_image_is_supported(core) && false) {
         if(image->dst.anc.x >= core->buffer.dimension.x || image->dst.anc.y >= core->buffer.dimension.y) {
             tui_image_clear_id_place(buf, image->id, place_id);
             return 0;
@@ -150,9 +153,87 @@ int tui_image_render(struct Tui_Buffer *buf, Tui_Image *image, uint32_t place_id
         tui_image_kitty_gfx_place(image, place_id, shift_px, dst_dim, goto_xy);
         err = !tui_input_await_image_data(core, image->kitty_gfx);
         if(errmsg) *errmsg = core->input_gen.special.kitty_graphics.message;
+
     } else {
-        //printff("UNSOPPORTED");
-        err = -1;
+
+        Tui_Rect dst = image->dst;
+        Tui_Rect src = image->src;
+        uint8_t *data = image->data;
+        Tui_Point dim = image->dimensions;
+        //printff("%zux%zu", dim.x,dim.y);
+
+        if(src.anc.x < 0 || src.anc.y < 0) return -1;
+        if(src.anc.x + src.dim.x > dim.x) return -1;
+        if(src.anc.y + src.dim.y > dim.y) return -1;
+
+        //So px = so("▄123412341234123123123");
+        //So px = so("▄");
+        So px = so("▀");
+        Tui_Color fg = { .type = TUI_COLOR_RGB };
+        Tui_Color bg = { .type = TUI_COLOR_RGB };
+        Tui_Buffer_Cache tbc = {0};
+
+        tbc.rect = dst;
+
+        static size_t nn;
+        nn = 0;
+
+        //printf(TUI_ESC_CODE_CLEAR);
+        for(size_t y = 0; y < dst.dim.y * 2; y += 2) {
+
+            size_t yy = (y + 0) * ((double)src.dim.y / 2.0 / (double)(dst.dim.y - 0.5)) + src.anc.y;
+            size_t y3 = (y + 1) * ((double)src.dim.y / 2.0 / (double)(dst.dim.y - 0.5)) + src.anc.y;
+
+            for(size_t x = 0; x <= dst.dim.x; ++x) {
+
+#if 1
+                size_t xx = x * ((double)src.dim.x / (double)(dst.dim.x - 1)) + src.anc.x;
+
+                tbc.bg = 0;
+                tbc.fg = 0;
+
+                for(uint8_t ch = 0; ch < image->channels; ++ch) {
+                    uint8_t byte = data[(yy * dim.y + xx) * image->channels + ch];
+                    if(ch == 0) fg.r = byte;
+                    if(ch == 1) fg.g = byte;
+                    if(ch == 2) fg.b = byte;
+                    // TODO if(ch == 3) exit(1);
+                    tbc.fg = &fg;
+                }
+                if(y3 < src.anc.y + src.dim.y) {
+                    for(uint8_t ch = 0; ch < image->channels; ++ch) {
+                        uint8_t byte = data[(y3 * dim.y + xx) * image->channels + ch];
+                        if(ch == 0) bg.r = byte;
+                        if(ch == 1) bg.g = byte;
+                        if(ch == 2) bg.b = byte;
+                    }
+                    tbc.bg = &bg;
+                }
+#else
+                tbc.bg = &bg;
+                tbc.fg = &fg;
+                bg.r = 0xff;
+                fg.g = 0xff;
+#endif
+
+                tui_buffer_draw_cache(buf, &tbc, px);
+
+                //jprintf(TUI_ESC_CODE_CLEAR);
+                //jprintff("pt %u,%u",tbc.pt.x,tbc.pt.y);
+                //jusleep(1e6);
+                //printf("%zu:%u,%u ",++nn,tbc.pt.x,tbc.pt.y);
+            }
+            //printf("\n");
+
+            //tui_buffer_draw_cache(buf, &tbc, so("\n"));
+            //tbc.rect.anc.y = dst.anc.y;
+            tbc.pt.x = 0;
+            tbc.pt.y += 1;
+
+        }
+
+        //usleep(1e6);
+        //exit(1);
     }
     return err;
 }

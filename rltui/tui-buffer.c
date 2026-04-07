@@ -56,13 +56,14 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
     //printff("\rHELLO");
     for(pt.y = rect.anc.y + pt0.y + offs.y; pt.y < rect.anc.y + rect.dim.y; ++pt.y) {
 
+        if(!so_splice(so, &line, '\n') && !fill) break;
+
         if(!first) {
             cache->pt.x = 0;
             ++cache->pt.y;
         }
         first = false;
 
-        if(!so_splice(so, &line, '\n') && !fill) break;
         if(pt.y < rect.anc.y + pt0.y) continue;
 
         int w_last = 0;
@@ -99,7 +100,10 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
                     continue;
                 }
 
-                if(!tui_rect_encloses_point(cnv, pt)) continue;
+                if(!tui_rect_encloses_point(cnv, pt)) {
+                    ++cache->pt.x;
+                    continue;
+                }
                 if(out_bounds) continue;
                 Tui_Cell *cell = tui_buffer_at(buf, pt);
 
@@ -138,6 +142,7 @@ void tui_buffer_draw_cache(Tui_Buffer *buf, Tui_Buffer_Cache *cache, So so) {
             } else {
 
                 if(!tui_rect_encloses_point(cnv, pt) || out_bounds) {
+                    ++cache->pt.x;
                     nleft_width = 0;
                     nleft_count = 0;
                     continue;

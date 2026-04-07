@@ -5,12 +5,10 @@
 
 typedef struct Tui_Rect {
     union {
-        [[deprecated]] Tui_Point anchor;
-        Tui_Point anc;
+        Tui_Point anc; /* anchor */
     };
     union {
-        [[deprecated]] Tui_Point dimension;
-        Tui_Point dim;
+        Tui_Point dim; /* dimension */
     };
 } Tui_Rect;
 

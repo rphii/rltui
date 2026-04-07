@@ -10,6 +10,7 @@ typedef struct Tui_Sync_Main {
     unsigned int update_done;
     unsigned int render_do;
     unsigned int render_done;
+    unsigned int render_skip;
 } Tui_Sync_Main;
 
 typedef struct Tui_Sync_Draw {

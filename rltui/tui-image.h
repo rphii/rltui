@@ -9,6 +9,9 @@ struct Tui_Buffer;
 
 bool tui_image_is_supported(struct Tui_Core *core);
 
+/* TODO: add tracking information about wheter or not it is sent, updated, rendered, or whatever.. */
+/* TODO: make image things more responsive for the user .. if a large image is sent, don't block forever.. */
+
 typedef struct Tui_Image {
     uint8_t *data;
     Tui_Rect src;
