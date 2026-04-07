@@ -181,13 +181,13 @@ int tui_image_render(struct Tui_Buffer *buf, Tui_Image *image, uint32_t place_id
         //printf(TUI_ESC_CODE_CLEAR);
         for(size_t y = 0; y < dst.dim.y * 2; y += 2) {
 
-            size_t yy = (y + 0) * ((double)src.dim.y / 2.0 / (double)(dst.dim.y - 0.5)) + src.anc.y;
-            size_t y3 = (y + 1) * ((double)src.dim.y / 2.0 / (double)(dst.dim.y - 0.5)) + src.anc.y;
+            size_t yy = (y + 0) * ((double)src.dim.y / (double)(2 * (dst.dim.y) - 1)) + (double)src.anc.y;
+            size_t y3 = (y + 1) * ((double)src.dim.y / (double)(2 * (dst.dim.y) - 1)) + (double)src.anc.y;
 
             for(size_t x = 0; x <= dst.dim.x; ++x) {
 
 #if 1
-                size_t xx = x * ((double)src.dim.x / (double)(dst.dim.x - 1)) + src.anc.x;
+                size_t xx = x * ((double)src.dim.x / (double)(dst.dim.x - 1.0)) + (double)src.anc.x;
 
                 tbc.bg = 0;
                 tbc.fg = 0;
@@ -200,7 +200,8 @@ int tui_image_render(struct Tui_Buffer *buf, Tui_Image *image, uint32_t place_id
                     // TODO if(ch == 3) exit(1);
                     tbc.fg = &fg;
                 }
-                if(y3 < src.anc.y + src.dim.y) {
+                if(y + 1 < dst.dim.y * 2) {
+                    y3 = y3 >= src.anc.y + src.dim.y ? src.anc.y + src.dim.y - 1 : y3;
                     for(uint8_t ch = 0; ch < image->channels; ++ch) {
                         uint8_t byte = data[(y3 * dim.y + xx) * image->channels + ch];
                         if(ch == 0) bg.r = byte;
