@@ -187,7 +187,8 @@ int tui_image_render(struct Tui_Buffer *buf, Tui_Image *image, uint32_t place_id
             for(size_t x = 0; x <= dst.dim.x; ++x) {
 
 #if 1
-                size_t xx = x * ((double)src.dim.x / (double)(dst.dim.x - 1.0)) + (double)src.anc.x;
+                size_t xx = x * ((double)src.dim.x / (double)(dst.dim.x - 1)) + (double)src.anc.x;
+                xx = xx >= src.anc.x + src.dim.x ? src.anc.x + src.dim.x - 1 : xx;
 
                 tbc.bg = 0;
                 tbc.fg = 0;
